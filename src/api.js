@@ -62,6 +62,15 @@ export async function getCommandHistory(token, deviceUid) {
   return data;
 }
 
+export async function getInstalledApps(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/apps`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load apps");
+  return data;
+}
+
 export async function getPolicies(token) {
   const res = await fetch(`${BASE_URL}/api/policies`, {
     headers: authHeaders(token),
