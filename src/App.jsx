@@ -9,6 +9,7 @@ import {
   createPolicy,
   assignPolicy,
   getInstalledApps,
+  getActivityLogs,
 } from "./api";
 
 // A device only counts as "online" if it checked in recently — heartbeats
@@ -534,7 +535,54 @@ function HistoryPanel({ deviceUid, token, onClose, embedded }) {
   );
 }
 
+function ActivityLogsView({ token }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getActivityLogs(token)
+      .then(setLogs)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <section>
+      <h2>Activity logs</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && logs.length === 0 && <p className="empty-state">No activity yet.</p>}
+      {!loading && logs.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Device</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((l) => (
+              <tr key={l.id}>
+                <td>{new Date(l.issued_at).toLocaleString()}</td>
+                <td>{l.admin_name || "System"}</td>
+                <td>{l.command_type}</td>
+                <td>{l.employee_name || l.device_uid}</td>
+                <td>{l.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
+  const [page, setPage] = useState("devices");
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -591,6 +639,10 @@ function Dashboard({ token, user, onLogout }) {
     <div className="dashboard">
       <header className="topbar">
         <h1>CyberNest</h1>
+        <nav className="top-nav">
+          <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>Devices</button>
+          <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>Activity Logs</button>
+        </nav>
         <div className="topbar-right">
           <span>{user.name}</span>
           <button className="ghost" onClick={onLogout}>Sign out</button>
@@ -598,6 +650,10 @@ function Dashboard({ token, user, onLogout }) {
       </header>
 
       <main>
+        {page === "activity" && <ActivityLogsView token={token} />}
+
+        {page === "devices" && (
+        <>
         <section className="enroll-panel">
           <h2>Enroll a new device</h2>
           <form onSubmit={handleGenerateToken} className="enroll-form">
@@ -668,6 +724,8 @@ function Dashboard({ token, user, onLogout }) {
             onCommandSent={showToast}
             onClose={() => setDetailsDeviceUid(null)}
           />
+        )}
+        </>
         )}
       </main>
 

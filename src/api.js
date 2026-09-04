@@ -71,6 +71,15 @@ export async function getInstalledApps(token, deviceUid) {
   return data;
 }
 
+export async function getActivityLogs(token) {
+  const res = await fetch(`${BASE_URL}/api/commands`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load activity logs");
+  return data;
+}
+
 export async function getPolicies(token) {
   const res = await fetch(`${BASE_URL}/api/policies`, {
     headers: authHeaders(token),
