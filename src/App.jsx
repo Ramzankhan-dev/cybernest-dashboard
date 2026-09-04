@@ -258,11 +258,18 @@ function Dashboard({ token, user, onLogout }) {
             <button type="submit">Generate enrollment code</button>
           </form>
           {generatedUid && (
-            <p className="generated-code">
-              Enrollment code: <span className="mono">{generatedUid}</span>
-              <br />
-              Enter this code in the CyberNest Agent app on the phone.
-            </p>
+            <div className="generated-code">
+              <p>
+                Enrollment code: <span className="mono">{generatedUid}</span>
+                <br />
+                Scan this QR in the CyberNest Agent app, or enter the code manually.
+              </p>
+              <img
+                className="qr-image"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${generatedUid}`}
+                alt="Enrollment QR code"
+              />
+            </div>
           )}
         </section>
 
