@@ -13,6 +13,8 @@ import {
   changePassword,
   generateApiKey,
   getApiKeys,
+  sendNotification,
+  getNotifications,
 } from "./api";
 
 // A device only counts as "online" if it checked in recently — heartbeats
@@ -736,6 +738,95 @@ function ProfileView({ token, user }) {
   );
 }
 
+function NotificationCenterView({ token, devices }) {
+  const [message, setMessage] = useState("");
+  const [target, setTarget] = useState(""); // "" = everyone
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  function loadSent() {
+    getNotifications(token).then(setSent).catch(() => {}).finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadSent();
+  }, []);
+
+  async function handleSend(e) {
+    e.preventDefault();
+    if (!message.trim()) return;
+    setSending(true);
+    setError("");
+    try {
+      const data = await sendNotification(token, message.trim(), target || null);
+      setMessage("");
+      setTarget("");
+      loadSent();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section>
+      <h2>Notification center</h2>
+      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+        <h3 style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>Send notification</h3>
+        <form onSubmit={handleSend}>
+          <textarea
+            className="notif-textarea"
+            placeholder="Write your message to employees..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
+            <select value={target} onChange={(e) => setTarget(e.target.value)}>
+              <option value="">Everyone</option>
+              {devices.map((d) => (
+                <option key={d.id} value={d.device_uid}>{d.employee_name || d.device_uid}</option>
+              ))}
+            </select>
+            <button type="submit" disabled={sending || !message.trim()}>
+              {sending ? "Sending..." : "Send notification"}
+            </button>
+          </div>
+        </form>
+        {error && <p className="error-text">{error}</p>}
+      </div>
+
+      <h3 style={{ fontSize: "0.95rem", marginBottom: "0.6rem" }}>Recently sent</h3>
+      {loading && <p>Loading...</p>}
+      {!loading && sent.length === 0 && <p className="empty-state">No notifications sent yet.</p>}
+      {!loading && sent.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Message</th>
+              <th>Target</th>
+              <th>Devices reached</th>
+              <th>Sent at</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sent.map((n) => (
+              <tr key={n.id}>
+                <td>{n.message}</td>
+                <td>{n.target_device_uid || "Everyone"}</td>
+                <td>{n.device_count}</td>
+                <td>{new Date(n.sent_at).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
   const [page, setPage] = useState("devices");
   const [devices, setDevices] = useState([]);
@@ -799,6 +890,7 @@ function Dashboard({ token, user, onLogout }) {
           <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>Activity Logs</button>
           <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>Alerts</button>
           <button className={page === "profile" ? "active" : ""} onClick={() => setPage("profile")}>Profile</button>
+          <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>Notifications</button>
         </nav>
         <div className="topbar-right">
           <span>{user.name}</span>
@@ -810,6 +902,7 @@ function Dashboard({ token, user, onLogout }) {
         {page === "activity" && <ActivityLogsView token={token} />}
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
+        {page === "notifications" && <NotificationCenterView token={token} devices={devices} />}
 
         {page === "devices" && (
         <>

@@ -110,6 +110,29 @@ export async function getApiKeys(token) {
   return data;
 }
 
+export async function sendNotification(token, message, targetDeviceUid = null) {
+  const body = { message };
+  if (targetDeviceUid) body.target_device_uid = targetDeviceUid;
+
+  const res = await fetch(`${BASE_URL}/api/notifications/send`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to send notification");
+  return data;
+}
+
+export async function getNotifications(token) {
+  const res = await fetch(`${BASE_URL}/api/notifications`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load notifications");
+  return data;
+}
+
 export async function getPolicies(token) {
   const res = await fetch(`${BASE_URL}/api/policies`, {
     headers: authHeaders(token),

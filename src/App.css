@@ -159,6 +159,17 @@ body {
   margin-top: 0.3rem;
 }
 
+.notif-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
