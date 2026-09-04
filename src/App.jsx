@@ -79,6 +79,22 @@ function DeviceRow({ device, token, onCommandSent, onViewHistory, policies }) {
     }
   }
 
+  async function handleWipe() {
+    const confirmed = window.confirm(
+      `⚠️ This will PERMANENTLY ERASE all data on "${device.employee_name || device.device_uid}". This cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+
+    setSending("wipe");
+    try {
+      await sendCommand(token, device.device_uid, "wipe");
+      onCommandSent(`Wipe command sent to ${device.employee_name || device.device_uid}`);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
   async function handleApplyPolicy() {
     if (!selectedPolicy) return;
     setSending("apply_policy");
@@ -135,6 +151,13 @@ function DeviceRow({ device, token, onCommandSent, onViewHistory, policies }) {
           disabled={sending !== null}
         >
           {sending === "lock" ? "..." : "Lock"}
+        </button>
+        <button
+          className="danger"
+          onClick={handleWipe}
+          disabled={sending !== null}
+        >
+          {sending === "wipe" ? "..." : "Wipe"}
         </button>
         <button onClick={() => onViewHistory(device.device_uid)}>
           History
