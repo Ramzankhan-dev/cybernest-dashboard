@@ -97,6 +97,9 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
   const [bluetooth, setBluetooth] = useState(false);
   const [wifi, setWifi] = useState(false);
   const [usb, setUsb] = useState(false);
+  const [kiosk, setKiosk] = useState(false);
+  const [hoursStart, setHoursStart] = useState("");
+  const [hoursEnd, setHoursEnd] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -112,12 +115,18 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
         bluetooth_blocked: bluetooth,
         wifi_restricted: wifi,
         usb_transfer_blocked: usb,
+        kiosk_mode: kiosk,
+        working_hours_start: hoursStart || null,
+        working_hours_end: hoursEnd || null,
       });
       setName("");
       setCamera(false);
       setBluetooth(false);
       setWifi(false);
       setUsb(false);
+      setKiosk(false);
+      setHoursStart("");
+      setHoursEnd("");
       onPolicyCreated();
     } catch (err) {
       setError(err.message);
@@ -140,6 +149,13 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
         <label><input type="checkbox" checked={bluetooth} onChange={(e) => setBluetooth(e.target.checked)} /> Block Bluetooth</label>
         <label><input type="checkbox" checked={wifi} onChange={(e) => setWifi(e.target.checked)} /> Restrict Wi-Fi config</label>
         <label><input type="checkbox" checked={usb} onChange={(e) => setUsb(e.target.checked)} /> Block USB transfer</label>
+        <label><input type="checkbox" checked={kiosk} onChange={(e) => setKiosk(e.target.checked)} /> Kiosk mode</label>
+        <label>
+          Working hours:
+          <input type="time" value={hoursStart} onChange={(e) => setHoursStart(e.target.value)} style={{ marginLeft: "0.4rem" }} />
+          –
+          <input type="time" value={hoursEnd} onChange={(e) => setHoursEnd(e.target.value)} />
+        </label>
         <button type="submit" disabled={saving || !name.trim()}>
           {saving ? "Saving..." : "Save policy"}
         </button>
@@ -155,7 +171,9 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
                 {p.camera_blocked && "Camera "}
                 {p.bluetooth_blocked && "Bluetooth "}
                 {p.wifi_restricted && "Wi-Fi "}
-                {p.usb_transfer_blocked && "USB"}
+                {p.usb_transfer_blocked && "USB "}
+                {p.kiosk_mode && "Kiosk "}
+                {p.working_hours_start && p.working_hours_end && `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}`}
               </span>
             </li>
           ))}
@@ -405,7 +423,9 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
                     {p.camera_blocked && "Camera "}
                     {p.bluetooth_blocked && "Bluetooth "}
                     {p.wifi_restricted && "Wi-Fi "}
-                    {p.usb_transfer_blocked && "USB"}
+                    {p.usb_transfer_blocked && "USB "}
+                    {p.kiosk_mode && "Kiosk "}
+                    {p.working_hours_start && p.working_hours_end && `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}`}
                   </span>
                 </li>
               ))}
@@ -426,6 +446,8 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
             <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
             <button onClick={() => handleCommand("restart")} disabled={sending !== null}>Restart</button>
+            <button onClick={() => handleCommand("enable_kiosk")} disabled={sending !== null}>Enable Kiosk</button>
+            <button onClick={() => handleCommand("disable_kiosk")} disabled={sending !== null}>Disable Kiosk</button>
             <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
