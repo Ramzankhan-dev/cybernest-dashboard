@@ -153,6 +153,30 @@ function DeviceRow({ device, token, onCommandSent, onViewHistory, policies }) {
           {sending === "lock" ? "..." : "Lock"}
         </button>
         <button
+          onClick={() => handleCommand("ring")}
+          disabled={sending !== null}
+        >
+          {sending === "ring" ? "..." : "Ring"}
+        </button>
+        <button
+          onClick={() => handleCommand("sync")}
+          disabled={sending !== null}
+        >
+          {sending === "sync" ? "..." : "Sync"}
+        </button>
+        <button
+          onClick={() => handleCommand("refresh_policy")}
+          disabled={sending !== null}
+        >
+          {sending === "refresh_policy" ? "..." : "Refresh Policy"}
+        </button>
+        <button
+          onClick={() => handleCommand("restart")}
+          disabled={sending !== null}
+        >
+          {sending === "restart" ? "..." : "Restart"}
+        </button>
+        <button
           className="danger"
           onClick={handleWipe}
           disabled={sending !== null}
