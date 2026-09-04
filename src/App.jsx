@@ -11,6 +11,14 @@ import {
   getInstalledApps,
 } from "./api";
 
+// A device only counts as "online" if it checked in recently — heartbeats
+// go out every 30s, so anything older than 90s (missed ~3 beats) means
+// it's actually lost connection, not that it's currently reachable.
+function isDeviceOnline(device) {
+  if (!device.last_seen) return false;
+  return Date.now() - new Date(device.last_seen).getTime() < 90_000;
+}
+
 function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,17 +72,18 @@ function LoginScreen({ onLogin }) {
 }
 
 function DeviceRow({ device, onViewDetails }) {
+  const online = isDeviceOnline(device);
   return (
     <tr>
       <td>
-        <span className={`status-dot ${device.status}`} />
+        <span className={`status-dot ${online ? "online" : "pending"}`} />
         {device.employee_name || "Unassigned"}
       </td>
       <td className="mono">{device.device_uid}</td>
       <td>{device.model || "—"}</td>
       <td>{device.android_version || "—"}</td>
       <td>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td>
-      <td>{device.status}</td>
+      <td>{online ? "online" : "offline"}</td>
       <td className="actions">
         <button onClick={() => onViewDetails(device.device_uid)}>View details</button>
       </td>
@@ -346,10 +355,15 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
         <div>
           <table style={{ marginBottom: "1.2rem" }}>
             <tbody>
+              <tr><td><strong>Manufacturer</strong></td><td>{device.manufacturer || "—"}</td></tr>
               <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
+              <tr><td><strong>Device ID</strong></td><td className="mono">{device.device_identifier || "—"}</td></tr>
               <tr><td><strong>Android version</strong></td><td>{device.android_version || "—"}</td></tr>
+              <tr><td><strong>RAM</strong></td><td>{device.ram_gb != null ? `${device.ram_gb} GB` : "—"}</td></tr>
+              <tr><td><strong>Storage</strong></td><td>{device.storage_used_gb != null ? `${device.storage_used_gb} / ${device.storage_total_gb} GB` : "—"}</td></tr>
+              <tr><td><strong>Network</strong></td><td>{device.network_info || "—"}</td></tr>
               <tr><td><strong>Battery</strong></td><td>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
-              <tr><td><strong>Status</strong></td><td>{device.status}</td></tr>
+              <tr><td><strong>Status</strong></td><td>{isDeviceOnline(device) ? "online" : "offline"}</td></tr>
               <tr><td><strong>Last seen</strong></td><td>{device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}</td></tr>
               <tr><td><strong>Enrolled</strong></td><td>{device.enrolled_at ? new Date(device.enrolled_at).toLocaleString() : "—"}</td></tr>
             </tbody>
