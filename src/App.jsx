@@ -430,6 +430,8 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
     </section>
   );
 }
+
+function HistoryPanel({ deviceUid, token, onClose, embedded }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
