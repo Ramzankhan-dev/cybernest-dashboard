@@ -358,6 +358,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
               <tr><td><strong>Manufacturer</strong></td><td>{device.manufacturer || "—"}</td></tr>
               <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
               <tr><td><strong>Device ID</strong></td><td className="mono">{device.device_identifier || "—"}</td></tr>
+              <tr><td><strong>IMEI</strong></td><td className="mono">{device.imei || "—"}</td></tr>
               <tr><td><strong>Android version</strong></td><td>{device.android_version || "—"}</td></tr>
               <tr><td><strong>RAM</strong></td><td>{device.ram_gb != null ? `${device.ram_gb} GB` : "—"}</td></tr>
               <tr><td><strong>Storage</strong></td><td>{device.storage_used_gb != null ? `${device.storage_used_gb} / ${device.storage_total_gb} GB` : "—"}</td></tr>
