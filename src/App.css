@@ -170,6 +170,52 @@ body {
   resize: vertical;
 }
 
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.report-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.report-card h4 {
+  font-size: 0.88rem;
+  color: var(--navy);
+  margin: 0 0 0.5rem;
+}
+
+.report-stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin-bottom: 0.8rem;
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.report-actions button {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--line);
+  padding: 0.4rem 0;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.report-actions button:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
 .topbar-right {
   display: flex;
   align-items: center;

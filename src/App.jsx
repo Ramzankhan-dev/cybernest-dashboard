@@ -16,6 +16,7 @@ import {
   sendNotification,
   getNotifications,
 } from "./api";
+import { exportToCSV, exportToPDF } from "./exportUtils";
 
 // A device only counts as "online" if it checked in recently — heartbeats
 // go out every 30s, so anything older than 90s (missed ~3 beats) means
@@ -827,6 +828,84 @@ function NotificationCenterView({ token, devices }) {
   );
 }
 
+function ReportCard({ title, stat, headers, rows, filenameBase }) {
+  return (
+    <div className="report-card">
+      <h4>{title}</h4>
+      <div className="report-stat">{stat}</div>
+      <div className="report-actions">
+        <button onClick={() => exportToPDF(filenameBase, title, headers, rows)}>PDF</button>
+        <button onClick={() => exportToCSV(filenameBase, headers, rows)}>Excel</button>
+      </div>
+    </div>
+  );
+}
+
+function ReportsView({ devices, policies, token }) {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    getActivityLogs(token).then(setLogs).catch(() => {});
+  }, []);
+
+  // 1. Device Inventory
+  const inventoryHeaders = ["Employee", "Device UID", "Model", "Manufacturer", "Android", "IMEI", "Battery %", "Status"];
+  const inventoryRows = devices.map((d) => [
+    d.employee_name || "Unassigned", d.device_uid, d.model || "—", d.manufacturer || "—",
+    d.android_version || "—", d.imei || "—", d.battery_level ?? "—", isDeviceOnline(d) ? "online" : "offline",
+  ]);
+
+  // 2. Policy Report
+  const policyHeaders = ["Name", "Camera", "Bluetooth", "Wi-Fi", "USB", "Kiosk", "Working hours"];
+  const policyRows = policies.map((p) => [
+    p.name,
+    p.camera_blocked ? "Blocked" : "—",
+    p.bluetooth_blocked ? "Blocked" : "—",
+    p.wifi_restricted ? "Restricted" : "—",
+    p.usb_transfer_blocked ? "Blocked" : "—",
+    p.kiosk_mode ? (p.kiosk_package || "Agent app") : "—",
+    p.working_hours_start && p.working_hours_end ? `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}` : "—",
+  ]);
+
+  // 3. Security Report (reuses the same alert logic as the Alerts page)
+  const securityRows = [];
+  devices.forEach((d) => {
+    const name = d.employee_name || d.device_uid;
+    if (d.is_rooted) securityRows.push([name, "Root access detected", new Date(d.last_seen).toLocaleString()]);
+    if (d.last_seen && !isDeviceOnline(d)) securityRows.push([name, "Device offline", new Date(d.last_seen).toLocaleString()]);
+  });
+  const securityHeaders = ["Device", "Issue", "Detected at"];
+
+  // 4. Battery Health
+  const batteryHeaders = ["Employee", "Device UID", "Battery %"];
+  const batteryRows = devices.filter((d) => d.battery_level != null).map((d) => [d.employee_name || "Unassigned", d.device_uid, d.battery_level]);
+  const avgBattery = batteryRows.length > 0 ? Math.round(batteryRows.reduce((sum, r) => sum + r[2], 0) / batteryRows.length) : "—";
+
+  // 5. Storage Report
+  const storageHeaders = ["Employee", "Device UID", "Used GB", "Total GB"];
+  const storageRows = devices.filter((d) => d.storage_used_gb != null).map((d) => [d.employee_name || "Unassigned", d.device_uid, d.storage_used_gb, d.storage_total_gb]);
+
+  // 6. Activity Report
+  const activityHeaders = ["Time", "Admin", "Action", "Device", "Status"];
+  const activityRows = logs.map((l) => [
+    new Date(l.issued_at).toLocaleString(), l.admin_name || "System", l.command_type, l.employee_name || l.device_uid, l.status,
+  ]);
+
+  return (
+    <section>
+      <h2>Reports</h2>
+      <div className="report-grid">
+        <ReportCard title="Device Inventory" stat={`${devices.length} devices`} headers={inventoryHeaders} rows={inventoryRows} filenameBase="device-inventory" />
+        <ReportCard title="Policy Report" stat={`${policies.length} policies`} headers={policyHeaders} rows={policyRows} filenameBase="policy-report" />
+        <ReportCard title="Security Report" stat={`${securityRows.length} issues`} headers={securityHeaders} rows={securityRows} filenameBase="security-report" />
+        <ReportCard title="Battery Health" stat={`Avg. ${avgBattery}%`} headers={batteryHeaders} rows={batteryRows} filenameBase="battery-health" />
+        <ReportCard title="Storage Report" stat={`${storageRows.length} devices`} headers={storageHeaders} rows={storageRows} filenameBase="storage-report" />
+        <ReportCard title="Activity Report" stat={`${logs.length} events`} headers={activityHeaders} rows={activityRows} filenameBase="activity-report" />
+      </div>
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
   const [page, setPage] = useState("devices");
   const [devices, setDevices] = useState([]);
@@ -891,6 +970,7 @@ function Dashboard({ token, user, onLogout }) {
           <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>Alerts</button>
           <button className={page === "profile" ? "active" : ""} onClick={() => setPage("profile")}>Profile</button>
           <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>Notifications</button>
+          <button className={page === "reports" ? "active" : ""} onClick={() => setPage("reports")}>Reports</button>
         </nav>
         <div className="topbar-right">
           <span>{user.name}</span>
@@ -903,6 +983,7 @@ function Dashboard({ token, user, onLogout }) {
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
         {page === "notifications" && <NotificationCenterView token={token} devices={devices} />}
+        {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} />}
 
         {page === "devices" && (
         <>
