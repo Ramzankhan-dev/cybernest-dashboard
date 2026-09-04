@@ -581,6 +581,54 @@ function ActivityLogsView({ token }) {
   );
 }
 
+function AlertsView({ devices }) {
+  const alerts = [];
+
+  devices.forEach((d) => {
+    const name = d.employee_name || d.device_uid;
+    if (d.battery_level != null && d.battery_level < 15) {
+      alerts.push({
+        key: `battery-${d.id}`,
+        title: `Battery low — ${name}`,
+        desc: `Device battery is at ${d.battery_level}%.`,
+        time: d.last_seen ? new Date(d.last_seen).toLocaleString() : "—",
+      });
+    }
+    if (d.last_seen && !isDeviceOnline(d)) {
+      alerts.push({
+        key: `offline-${d.id}`,
+        title: `Device offline — ${name}`,
+        desc: `No check-in since ${new Date(d.last_seen).toLocaleString()}.`,
+        time: new Date(d.last_seen).toLocaleString(),
+      });
+    }
+    if (d.is_rooted) {
+      alerts.push({
+        key: `root-${d.id}`,
+        title: `Root access detected — ${name}`,
+        desc: `Device flagged as rooted — this may bypass policy enforcement.`,
+        time: d.last_seen ? new Date(d.last_seen).toLocaleString() : "—",
+      });
+    }
+  });
+
+  return (
+    <section>
+      <h2>Alerts {alerts.length > 0 && `· ${alerts.length} active`}</h2>
+      {alerts.length === 0 && <p className="empty-state">No active alerts — everything looks normal.</p>}
+      {alerts.map((a) => (
+        <div key={a.key} className="alert-card">
+          <div>
+            <div className="alert-title">{a.title}</div>
+            <div className="alert-desc">{a.desc}</div>
+            <div className="alert-time">{a.time}</div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
   const [page, setPage] = useState("devices");
   const [devices, setDevices] = useState([]);
@@ -642,6 +690,7 @@ function Dashboard({ token, user, onLogout }) {
         <nav className="top-nav">
           <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>Devices</button>
           <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>Activity Logs</button>
+          <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>Alerts</button>
         </nav>
         <div className="topbar-right">
           <span>{user.name}</span>
@@ -651,6 +700,7 @@ function Dashboard({ token, user, onLogout }) {
 
       <main>
         {page === "activity" && <ActivityLogsView token={token} />}
+        {page === "alerts" && <AlertsView devices={devices} />}
 
         {page === "devices" && (
         <>

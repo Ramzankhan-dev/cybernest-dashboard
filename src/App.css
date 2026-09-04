@@ -129,6 +129,36 @@ body {
   color: white;
 }
 
+.alert-card {
+  display: flex;
+  gap: 0.8rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  border-radius: 4px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.alert-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.alert-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.alert-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
