@@ -61,3 +61,34 @@ export async function getCommandHistory(token, deviceUid) {
   if (!res.ok) throw new Error(data.error || "Failed to load command history");
   return data;
 }
+
+export async function getPolicies(token) {
+  const res = await fetch(`${BASE_URL}/api/policies`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load policies");
+  return data;
+}
+
+export async function createPolicy(token, policy) {
+  const res = await fetch(`${BASE_URL}/api/policies`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(policy),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to create policy");
+  return data;
+}
+
+export async function assignPolicy(token, policyId, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/policies/${policyId}/assign`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ device_uid: deviceUid }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to apply policy");
+  return data;
+}

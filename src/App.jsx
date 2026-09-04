@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { login, getDevices, generateEnrollmentToken, sendCommand, getCommandHistory } from "./api";
+import {
+  login,
+  getDevices,
+  generateEnrollmentToken,
+  sendCommand,
+  getCommandHistory,
+  getPolicies,
+  createPolicy,
+  assignPolicy,
+} from "./api";
 
 function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -53,15 +62,29 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function DeviceRow({ device, token, onCommandSent, onViewHistory }) {
+function DeviceRow({ device, token, onCommandSent, onViewHistory, policies }) {
   const [sending, setSending] = useState(null);
   const [appPackage, setAppPackage] = useState("");
+  const [selectedPolicy, setSelectedPolicy] = useState("");
 
   async function handleCommand(commandType, packageName = null) {
     setSending(commandType);
     try {
       await sendCommand(token, device.device_uid, commandType, packageName);
       onCommandSent(`${commandType} sent to ${device.employee_name || device.device_uid}`);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
+  async function handleApplyPolicy() {
+    if (!selectedPolicy) return;
+    setSending("apply_policy");
+    try {
+      const data = await assignPolicy(token, selectedPolicy, device.device_uid);
+      onCommandSent(`Policy applied to ${device.employee_name || device.device_uid} (${data.commands_sent.length} rules)`);
     } catch (err) {
       onCommandSent(`Failed: ${err.message}`, true);
     } finally {
@@ -141,7 +164,98 @@ function DeviceRow({ device, token, onCommandSent, onViewHistory }) {
         </button>
       </td>
     </tr>
+    <tr className="app-block-row">
+      <td colSpan={7}>
+        <span className="app-block-label">Apply policy:</span>
+        <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>
+          <option value="">Select a saved policy…</option>
+          {policies.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <button
+          disabled={sending !== null || !selectedPolicy}
+          onClick={handleApplyPolicy}
+        >
+          {sending === "apply_policy" ? "Applying..." : "Apply policy"}
+        </button>
+      </td>
+    </tr>
     </>
+  );
+}
+
+function PolicyPanel({ token, policies, onPolicyCreated }) {
+  const [name, setName] = useState("");
+  const [camera, setCamera] = useState(false);
+  const [bluetooth, setBluetooth] = useState(false);
+  const [wifi, setWifi] = useState(false);
+  const [usb, setUsb] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await createPolicy(token, {
+        name: name.trim(),
+        camera_blocked: camera,
+        bluetooth_blocked: bluetooth,
+        wifi_restricted: wifi,
+        usb_transfer_blocked: usb,
+      });
+      setName("");
+      setCamera(false);
+      setBluetooth(false);
+      setWifi(false);
+      setUsb(false);
+      onPolicyCreated();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="policy-panel">
+      <h2>Policy templates</h2>
+      <form onSubmit={handleCreate} className="policy-form">
+        <input
+          type="text"
+          placeholder="Policy name, e.g. Restricted Mode"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <label><input type="checkbox" checked={camera} onChange={(e) => setCamera(e.target.checked)} /> Block camera</label>
+        <label><input type="checkbox" checked={bluetooth} onChange={(e) => setBluetooth(e.target.checked)} /> Block Bluetooth</label>
+        <label><input type="checkbox" checked={wifi} onChange={(e) => setWifi(e.target.checked)} /> Restrict Wi-Fi config</label>
+        <label><input type="checkbox" checked={usb} onChange={(e) => setUsb(e.target.checked)} /> Block USB transfer</label>
+        <button type="submit" disabled={saving || !name.trim()}>
+          {saving ? "Saving..." : "Save policy"}
+        </button>
+      </form>
+      {error && <p className="error-text">{error}</p>}
+
+      {policies.length > 0 && (
+        <ul className="policy-list">
+          {policies.map((p) => (
+            <li key={p.id}>
+              <strong>{p.name}</strong>
+              <span className="policy-flags">
+                {p.camera_blocked && "Camera "}
+                {p.bluetooth_blocked && "Bluetooth "}
+                {p.wifi_restricted && "Wi-Fi "}
+                {p.usb_transfer_blocked && "USB"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -201,6 +315,16 @@ function Dashboard({ token, user, onLogout }) {
   const [newDeviceName, setNewDeviceName] = useState("");
   const [generatedUid, setGeneratedUid] = useState(null);
   const [historyDeviceUid, setHistoryDeviceUid] = useState(null);
+  const [policies, setPolicies] = useState([]);
+
+  async function loadPolicies() {
+    try {
+      const data = await getPolicies(token);
+      setPolicies(data);
+    } catch (err) {
+      // Non-critical — device list still works without policies
+    }
+  }
 
   async function loadDevices() {
     setLoading(true);
@@ -216,6 +340,7 @@ function Dashboard({ token, user, onLogout }) {
 
   useEffect(() => {
     loadDevices();
+    loadPolicies();
   }, []);
 
   function showToast(message, isError = false) {
@@ -273,6 +398,8 @@ function Dashboard({ token, user, onLogout }) {
           )}
         </section>
 
+        <PolicyPanel token={token} policies={policies} onPolicyCreated={loadPolicies} />
+
         <section>
           <h2>Devices</h2>
           {loading && <p>Loading devices...</p>}
@@ -301,6 +428,7 @@ function Dashboard({ token, user, onLogout }) {
                     token={token}
                     onCommandSent={showToast}
                     onViewHistory={setHistoryDeviceUid}
+                    policies={policies}
                   />
                 ))}
               </tbody>
