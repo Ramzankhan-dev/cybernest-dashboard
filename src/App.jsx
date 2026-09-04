@@ -63,54 +63,8 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function DeviceRow({ device, token, onCommandSent, onViewHistory, onViewApps, policies }) {
-  const [sending, setSending] = useState(null);
-  const [appPackage, setAppPackage] = useState("");
-  const [selectedPolicy, setSelectedPolicy] = useState("");
-
-  async function handleCommand(commandType, packageName = null) {
-    setSending(commandType);
-    try {
-      await sendCommand(token, device.device_uid, commandType, packageName);
-      onCommandSent(`${commandType} sent to ${device.employee_name || device.device_uid}`);
-    } catch (err) {
-      onCommandSent(`Failed: ${err.message}`, true);
-    } finally {
-      setSending(null);
-    }
-  }
-
-  async function handleWipe() {
-    const confirmed = window.confirm(
-      `⚠️ This will PERMANENTLY ERASE all data on "${device.employee_name || device.device_uid}". This cannot be undone. Continue?`
-    );
-    if (!confirmed) return;
-
-    setSending("wipe");
-    try {
-      await sendCommand(token, device.device_uid, "wipe");
-      onCommandSent(`Wipe command sent to ${device.employee_name || device.device_uid}`);
-    } catch (err) {
-      onCommandSent(`Failed: ${err.message}`, true);
-    } finally {
-      setSending(null);
-    }
-  }
-  async function handleApplyPolicy() {
-    if (!selectedPolicy) return;
-    setSending("apply_policy");
-    try {
-      const data = await assignPolicy(token, selectedPolicy, device.device_uid);
-      onCommandSent(`Policy applied to ${device.employee_name || device.device_uid} (${data.commands_sent.length} rules)`);
-    } catch (err) {
-      onCommandSent(`Failed: ${err.message}`, true);
-    } finally {
-      setSending(null);
-    }
-  }
-
+function DeviceRow({ device, onViewDetails }) {
   return (
-    <>
     <tr>
       <td>
         <span className={`status-dot ${device.status}`} />
@@ -122,117 +76,9 @@ function DeviceRow({ device, token, onCommandSent, onViewHistory, onViewApps, po
       <td>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td>
       <td>{device.status}</td>
       <td className="actions">
-        <button
-          onClick={() => handleCommand("block_camera")}
-          disabled={sending !== null}
-        >
-          {sending === "block_camera" ? "..." : "Block camera"}
-        </button>
-        <button
-          onClick={() => handleCommand("unblock_camera")}
-          disabled={sending !== null}
-        >
-          {sending === "unblock_camera" ? "..." : "Unblock camera"}
-        </button>
-        <button
-          onClick={() => handleCommand("block_bluetooth")}
-          disabled={sending !== null}
-        >
-          {sending === "block_bluetooth" ? "..." : "Block Bluetooth"}
-        </button>
-        <button
-          onClick={() => handleCommand("unblock_bluetooth")}
-          disabled={sending !== null}
-        >
-          {sending === "unblock_bluetooth" ? "..." : "Unblock Bluetooth"}
-        </button>
-        <button
-          className="danger"
-          onClick={() => handleCommand("lock")}
-          disabled={sending !== null}
-        >
-          {sending === "lock" ? "..." : "Lock"}
-        </button>
-        <button
-          onClick={() => handleCommand("ring")}
-          disabled={sending !== null}
-        >
-          {sending === "ring" ? "..." : "Ring"}
-        </button>
-        <button
-          onClick={() => handleCommand("sync")}
-          disabled={sending !== null}
-        >
-          {sending === "sync" ? "..." : "Sync"}
-        </button>
-        <button
-          onClick={() => handleCommand("refresh_policy")}
-          disabled={sending !== null}
-        >
-          {sending === "refresh_policy" ? "..." : "Refresh Policy"}
-        </button>
-        <button
-          onClick={() => handleCommand("restart")}
-          disabled={sending !== null}
-        >
-          {sending === "restart" ? "..." : "Restart"}
-        </button>
-        <button
-          className="danger"
-          onClick={handleWipe}
-          disabled={sending !== null}
-        >
-          {sending === "wipe" ? "..." : "Wipe"}
-        </button>
-        <button onClick={() => onViewHistory(device.device_uid)}>
-          History
-        </button>
-        <button onClick={() => onViewApps(device.device_uid)}>
-          Apps
-        </button>
+        <button onClick={() => onViewDetails(device.device_uid)}>View details</button>
       </td>
     </tr>
-    <tr className="app-block-row">
-      <td colSpan={7}>
-        <span className="app-block-label">App control:</span>
-        <input
-          type="text"
-          placeholder="Package name, e.g. com.whatsapp"
-          value={appPackage}
-          onChange={(e) => setAppPackage(e.target.value)}
-        />
-        <button
-          disabled={sending !== null || !appPackage.trim()}
-          onClick={() => handleCommand("block_app", appPackage.trim())}
-        >
-          {sending === "block_app" ? "..." : "Block app"}
-        </button>
-        <button
-          disabled={sending !== null || !appPackage.trim()}
-          onClick={() => handleCommand("unblock_app", appPackage.trim())}
-        >
-          {sending === "unblock_app" ? "..." : "Unblock app"}
-        </button>
-      </td>
-    </tr>
-    <tr className="app-block-row">
-      <td colSpan={7}>
-        <span className="app-block-label">Apply policy:</span>
-        <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>
-          <option value="">Select a saved policy…</option>
-          {policies.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-        <button
-          disabled={sending !== null || !selectedPolicy}
-          onClick={handleApplyPolicy}
-        >
-          {sending === "apply_policy" ? "Applying..." : "Apply policy"}
-        </button>
-      </td>
-    </tr>
-    </>
   );
 }
 
@@ -310,7 +156,7 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
   );
 }
 
-function AppsPanel({ deviceUid, token, onClose, onCommandSent }) {
+function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
@@ -351,19 +197,13 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent }) {
     }
   }
 
-  return (
-    <section className="history-panel">
-      <div className="history-header">
-        <h2 style={{ border: "none", margin: 0 }}>
-          Installed apps — <span className="mono">{deviceUid}</span>
-        </h2>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button className="ghost-dark" onClick={handleRequestUpdate} disabled={requesting}>
-            {requesting ? "Requesting..." : "Request update from device"}
-          </button>
-          <button className="ghost-dark" onClick={loadApps}>Refresh list</button>
-          <button className="ghost-dark" onClick={onClose}>Close</button>
-        </div>
+  const body = (
+    <>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        <button className="ghost-dark" onClick={handleRequestUpdate} disabled={requesting}>
+          {requesting ? "Requesting..." : "Request update from device"}
+        </button>
+        <button className="ghost-dark" onClick={loadApps}>Refresh list</button>
       </div>
       {loading && <p>Loading...</p>}
       {!loading && apps.length === 0 && (
@@ -416,11 +256,180 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent }) {
           </tbody>
         </table>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <section className="history-panel">
+      <div className="history-header">
+        <h2 style={{ border: "none", margin: 0 }}>
+          Installed apps — <span className="mono">{deviceUid}</span>
+        </h2>
+        <button className="ghost-dark" onClick={onClose}>Close</button>
+      </div>
+      {body}
     </section>
   );
 }
 
-function HistoryPanel({ deviceUid, token, onClose }) {
+function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) {
+  const [tab, setTab] = useState("general");
+  const [sending, setSending] = useState(null);
+  const [appPackage, setAppPackage] = useState("");
+  const [selectedPolicy, setSelectedPolicy] = useState("");
+
+  async function handleCommand(commandType, packageName = null) {
+    setSending(commandType);
+    try {
+      await sendCommand(token, device.device_uid, commandType, packageName);
+      onCommandSent(`${commandType} sent to ${device.employee_name || device.device_uid}`);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
+  async function handleWipe() {
+    const confirmed = window.confirm(
+      `⚠️ This will PERMANENTLY ERASE all data on "${device.employee_name || device.device_uid}". This cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+    setSending("wipe");
+    try {
+      await sendCommand(token, device.device_uid, "wipe");
+      onCommandSent(`Wipe command sent to ${device.employee_name || device.device_uid}`);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
+  async function handleApplyPolicy() {
+    if (!selectedPolicy) return;
+    setSending("apply_policy");
+    try {
+      const data = await assignPolicy(token, selectedPolicy, device.device_uid);
+      onCommandSent(`Policy applied (${data.commands_sent.length} rules)`);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
+  return (
+    <section className="details-panel">
+      <div className="history-header">
+        <h2 style={{ border: "none", margin: 0 }}>
+          {device.employee_name || "Unassigned"} — <span className="mono">{device.device_uid}</span>
+        </h2>
+        <button className="ghost-dark" onClick={onClose}>Close</button>
+      </div>
+
+      <div className="tab-strip">
+        {["general", "apps", "policy", "commands"].map((t) => (
+          <button
+            key={t}
+            className={`tab-btn ${tab === t ? "active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {tab === "general" && (
+        <div>
+          <table style={{ marginBottom: "1.2rem" }}>
+            <tbody>
+              <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
+              <tr><td><strong>Android version</strong></td><td>{device.android_version || "—"}</td></tr>
+              <tr><td><strong>Battery</strong></td><td>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
+              <tr><td><strong>Status</strong></td><td>{device.status}</td></tr>
+              <tr><td><strong>Last seen</strong></td><td>{device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}</td></tr>
+              <tr><td><strong>Enrolled</strong></td><td>{device.enrolled_at ? new Date(device.enrolled_at).toLocaleString() : "—"}</td></tr>
+            </tbody>
+          </table>
+          <div className="quick-actions">
+            <button onClick={() => handleCommand("lock")} disabled={sending !== null}>Lock</button>
+            <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
+            <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
+            <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
+          </div>
+        </div>
+      )}
+
+      {tab === "apps" && (
+        <AppsPanel deviceUid={device.device_uid} token={token} onCommandSent={onCommandSent} embedded />
+      )}
+
+      {tab === "policy" && (
+        <div>
+          <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Apply a saved policy:</div>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
+            <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>
+              <option value="">Select a saved policy…</option>
+              {policies.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <button disabled={sending !== null || !selectedPolicy} onClick={handleApplyPolicy}>
+              {sending === "apply_policy" ? "Applying..." : "Apply policy"}
+            </button>
+          </div>
+          {policies.length > 0 && (
+            <ul className="policy-list">
+              {policies.map((p) => (
+                <li key={p.id}>
+                  <strong>{p.name}</strong>
+                  <span className="policy-flags">
+                    {p.camera_blocked && "Camera "}
+                    {p.bluetooth_blocked && "Bluetooth "}
+                    {p.wifi_restricted && "Wi-Fi "}
+                    {p.usb_transfer_blocked && "USB"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {tab === "commands" && (
+        <div>
+          <div className="quick-actions" style={{ marginBottom: "1.2rem" }}>
+            <button onClick={() => handleCommand("block_camera")} disabled={sending !== null}>Block camera</button>
+            <button onClick={() => handleCommand("unblock_camera")} disabled={sending !== null}>Unblock camera</button>
+            <button onClick={() => handleCommand("block_bluetooth")} disabled={sending !== null}>Block Bluetooth</button>
+            <button onClick={() => handleCommand("unblock_bluetooth")} disabled={sending !== null}>Unblock Bluetooth</button>
+            <button onClick={() => handleCommand("lock")} disabled={sending !== null}>Lock</button>
+            <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
+            <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
+            <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
+            <button onClick={() => handleCommand("restart")} disabled={sending !== null}>Restart</button>
+            <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
+            <input
+              type="text"
+              placeholder="Package name, e.g. com.whatsapp"
+              value={appPackage}
+              onChange={(e) => setAppPackage(e.target.value)}
+            />
+            <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("block_app", appPackage.trim())}>Block app</button>
+            <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("unblock_app", appPackage.trim())}>Unblock app</button>
+          </div>
+          <h2 style={{ fontSize: "0.95rem" }}>Command history</h2>
+          <HistoryPanel deviceUid={device.device_uid} token={token} embedded />
+        </div>
+      )}
+    </section>
+  );
+}
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -430,14 +439,8 @@ function HistoryPanel({ deviceUid, token, onClose }) {
       .finally(() => setLoading(false));
   }, [deviceUid]);
 
-  return (
-    <section className="history-panel">
-      <div className="history-header">
-        <h2 style={{ border: "none", margin: 0 }}>
-          Command history — <span className="mono">{deviceUid}</span>
-        </h2>
-        <button className="ghost-dark" onClick={onClose}>Close</button>
-      </div>
+  const content = (
+    <>
       {loading && <p>Loading...</p>}
       {!loading && history.length === 0 && (
         <p className="empty-state">No commands sent to this device yet.</p>
@@ -464,6 +467,20 @@ function HistoryPanel({ deviceUid, token, onClose }) {
           </tbody>
         </table>
       )}
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <section className="history-panel">
+      <div className="history-header">
+        <h2 style={{ border: "none", margin: 0 }}>
+          Command history — <span className="mono">{deviceUid}</span>
+        </h2>
+        <button className="ghost-dark" onClick={onClose}>Close</button>
+      </div>
+      {content}
     </section>
   );
 }
@@ -475,8 +492,7 @@ function Dashboard({ token, user, onLogout }) {
   const [toast, setToast] = useState(null);
   const [newDeviceName, setNewDeviceName] = useState("");
   const [generatedUid, setGeneratedUid] = useState(null);
-  const [historyDeviceUid, setHistoryDeviceUid] = useState(null);
-  const [appsDeviceUid, setAppsDeviceUid] = useState(null);
+  const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
   const [policies, setPolicies] = useState([]);
 
   async function loadPolicies() {
@@ -587,11 +603,7 @@ function Dashboard({ token, user, onLogout }) {
                   <DeviceRow
                     key={d.id}
                     device={d}
-                    token={token}
-                    onCommandSent={showToast}
-                    onViewHistory={setHistoryDeviceUid}
-                    onViewApps={setAppsDeviceUid}
-                    policies={policies}
+                    onViewDetails={setDetailsDeviceUid}
                   />
                 ))}
               </tbody>
@@ -599,20 +611,13 @@ function Dashboard({ token, user, onLogout }) {
           )}
         </section>
 
-        {historyDeviceUid && (
-          <HistoryPanel
-            deviceUid={historyDeviceUid}
+        {detailsDeviceUid && (
+          <DeviceDetailsView
+            device={devices.find((d) => d.device_uid === detailsDeviceUid)}
             token={token}
-            onClose={() => setHistoryDeviceUid(null)}
-          />
-        )}
-
-        {appsDeviceUid && (
-          <AppsPanel
-            deviceUid={appsDeviceUid}
-            token={token}
-            onClose={() => setAppsDeviceUid(null)}
+            policies={policies}
             onCommandSent={showToast}
+            onClose={() => setDetailsDeviceUid(null)}
           />
         )}
       </main>

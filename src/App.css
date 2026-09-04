@@ -331,6 +331,54 @@ td {
   border-radius: 4px;
 }
 
+.details-panel {
+  margin-top: 2.5rem;
+  padding: 1.2rem;
+  background: white;
+  border: 1px solid var(--navy);
+  border-radius: 4px;
+}
+
+.tab-strip {
+  display: flex;
+  gap: 0.3rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.2rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quick-actions button {
+  background: white;
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.8rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.quick-actions button:hover { border-color: var(--teal); color: var(--teal); }
+.quick-actions button.danger:hover { border-color: var(--danger); color: var(--danger); }
+
 .history-header {
   display: flex;
   align-items: center;
