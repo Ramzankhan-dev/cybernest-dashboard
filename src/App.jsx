@@ -98,6 +98,7 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
   const [wifi, setWifi] = useState(false);
   const [usb, setUsb] = useState(false);
   const [kiosk, setKiosk] = useState(false);
+  const [kioskPackage, setKioskPackage] = useState("");
   const [hoursStart, setHoursStart] = useState("");
   const [hoursEnd, setHoursEnd] = useState("");
   const [saving, setSaving] = useState(false);
@@ -116,6 +117,7 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
         wifi_restricted: wifi,
         usb_transfer_blocked: usb,
         kiosk_mode: kiosk,
+        kiosk_package: kioskPackage || null,
         working_hours_start: hoursStart || null,
         working_hours_end: hoursEnd || null,
       });
@@ -125,6 +127,7 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
       setWifi(false);
       setUsb(false);
       setKiosk(false);
+      setKioskPackage("");
       setHoursStart("");
       setHoursEnd("");
       onPolicyCreated();
@@ -150,6 +153,13 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
         <label><input type="checkbox" checked={wifi} onChange={(e) => setWifi(e.target.checked)} /> Restrict Wi-Fi config</label>
         <label><input type="checkbox" checked={usb} onChange={(e) => setUsb(e.target.checked)} /> Block USB transfer</label>
         <label><input type="checkbox" checked={kiosk} onChange={(e) => setKiosk(e.target.checked)} /> Kiosk mode</label>
+        <input
+          type="text"
+          placeholder="Kiosk target app package (blank = lock to agent app)"
+          value={kioskPackage}
+          onChange={(e) => setKioskPackage(e.target.value)}
+          style={{ minWidth: "260px" }}
+        />
         <label>
           Working hours:
           <input type="time" value={hoursStart} onChange={(e) => setHoursStart(e.target.value)} style={{ marginLeft: "0.4rem" }} />
@@ -446,14 +456,14 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
             <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
             <button onClick={() => handleCommand("restart")} disabled={sending !== null}>Restart</button>
-            <button onClick={() => handleCommand("enable_kiosk")} disabled={sending !== null}>Enable Kiosk</button>
+            <button onClick={() => handleCommand("enable_kiosk", appPackage.trim() || null)} disabled={sending !== null}>Enable Kiosk</button>
             <button onClick={() => handleCommand("disable_kiosk")} disabled={sending !== null}>Disable Kiosk</button>
             <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
             <input
               type="text"
-              placeholder="Package name, e.g. com.whatsapp"
+              placeholder="Package name — for app block/unblock, or Enable Kiosk target"
               value={appPackage}
               onChange={(e) => setAppPackage(e.target.value)}
             />
