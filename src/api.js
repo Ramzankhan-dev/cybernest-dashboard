@@ -324,8 +324,9 @@ export async function deleteDepartment(token, id) {
   return data;
 }
 
-export async function getEmployees(token) {
-  const res = await fetch(`${BASE_URL}/api/employees`, {
+export async function getEmployees(token, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE_URL}/api/employees?${qs}`, {
     headers: authHeaders(token),
   });
   const data = await res.json();
@@ -333,14 +334,57 @@ export async function getEmployees(token) {
   return data;
 }
 
-export async function createEmployee(token, name, employeeCode, departmentId) {
+export async function createEmployee(token, payload) {
   const res = await fetch(`${BASE_URL}/api/employees`, {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ name, employee_code: employeeCode || null, department_id: departmentId }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to add employee");
+  return data;
+}
+
+export async function updateEmployee(token, id, payload) {
+  const res = await fetch(`${BASE_URL}/api/employees/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update employee");
+  return data;
+}
+
+export async function changeEmployeeDepartment(token, id, departmentId) {
+  const res = await fetch(`${BASE_URL}/api/employees/${id}/department`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ department_id: departmentId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to change department");
+  return data;
+}
+
+export async function changeEmployeeRole(token, id, role) {
+  const res = await fetch(`${BASE_URL}/api/employees/${id}/role`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ role }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to change role");
+  return data;
+}
+
+export async function deleteEmployee(token, id) {
+  const res = await fetch(`${BASE_URL}/api/employees/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete employee");
   return data;
 }
 
