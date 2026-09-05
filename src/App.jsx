@@ -26,8 +26,14 @@ import {
   createEmployee,
   assignEmployeeDevice,
   setEmployeeStatus,
+  getDashboardSummary,
+  getDashboardCharts,
+  getDashboardActivity,
+  getDashboardAlerts,
+  globalSearch,
 } from "./api";
 import { exportToCSV, exportToPDF } from "./exportUtils";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 // A device only counts as "online" if it checked in recently — heartbeats
 // go out every 30s, so anything older than 90s (missed ~3 beats) means
@@ -1349,8 +1355,197 @@ function EmployeesView({ token }) {
   );
 }
 
+const CHART_COLORS = ["#0F6E56", "#1D2A44", "#C99A3E", "#A63B2A", "#5F5E5A"];
+
+function KpiCard({ label, value, onClick }) {
+  return (
+    <div className="kpi-card" onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-label">{label}</div>
+    </div>
+  );
+}
+
+function DashboardOverview({ token, user, onNavigate }) {
+  const [summary, setSummary] = useState(null);
+  const [charts, setCharts] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadAll() {
+    try {
+      const [s, c, a, al] = await Promise.all([
+        getDashboardSummary(token),
+        getDashboardCharts(token),
+        getDashboardActivity(token),
+        getDashboardAlerts(token),
+      ]);
+      setSummary(s);
+      setCharts(c);
+      setActivity(a);
+      setAlerts(al);
+      setLastUpdated(new Date());
+      setError("");
+    } catch (err) {
+      setError("Unable to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAll();
+    // FR-06: auto refresh every 60 seconds
+    const interval = setInterval(loadAll, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <section><h2>Dashboard</h2><p>Loading dashboard...</p></section>;
+  if (error) return <section><h2>Dashboard</h2><p className="error-text">{error}</p></section>;
+
+  const deviceStatusData = charts ? [
+    { name: "Online", value: charts.device_status.online },
+    { name: "Offline", value: charts.device_status.offline },
+  ] : [];
+  const complianceData = charts ? [
+    { name: "Compliant", value: charts.policy_compliance.compliant },
+    { name: "Non-Compliant", value: charts.policy_compliance.non_compliant },
+  ] : [];
+
+  return (
+    <section>
+      <div className="dash-header-row">
+        <div>
+          <h2 style={{ border: "none", margin: 0 }}>Welcome back, {user.name}</h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
+            {lastUpdated && `Last updated ${lastUpdated.toLocaleTimeString()}`}
+          </p>
+        </div>
+        <button className="ghost-dark" onClick={loadAll}>Refresh</button>
+      </div>
+
+      <div className="kpi-grid">
+        <KpiCard label="Total Devices" value={summary.total_devices} onClick={() => onNavigate("devices")} />
+        <KpiCard label="Online Devices" value={summary.online_devices} onClick={() => onNavigate("devices")} />
+        <KpiCard label="Offline Devices" value={summary.offline_devices} onClick={() => onNavigate("devices")} />
+        <KpiCard label="Active Policies" value={summary.active_policies} onClick={() => onNavigate("policies")} />
+        <KpiCard label="Policy Violations" value={summary.policy_violations} onClick={() => onNavigate("alerts")} />
+        <KpiCard label="Pending Commands" value={summary.pending_commands} onClick={() => onNavigate("activity")} />
+        <KpiCard label="Today's Alerts" value={summary.todays_alerts} onClick={() => onNavigate("alerts")} />
+        <KpiCard label="Organizations" value={summary.total_organizations} onClick={() => onNavigate("org")} />
+      </div>
+
+      <div className="chart-grid">
+        <div className="chart-card">
+          <h4>Device Status</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={deviceStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                {deviceStatusData.map((entry, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <h4>Policy Compliance</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={complianceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                {complianceData.map((entry, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <h4>Android Versions</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={charts.android_versions}>
+              <XAxis dataKey="version" fontSize={11} />
+              <YAxis allowDecimals={false} fontSize={11} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#0F6E56" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <h4>Device Distribution (by Department)</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={charts.device_distribution}>
+              <XAxis dataKey="department" fontSize={11} />
+              <YAxis allowDecimals={false} fontSize={11} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#1D2A44" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <h4>Device Health</h4>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
+            <div style={{ textAlign: "center" }}>
+              <div className="report-stat" style={{ fontSize: "2rem" }}>{charts.device_health.avg_battery}%</div>
+              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Average battery across fleet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dash-two-col">
+        <div>
+          <h3 style={{ fontSize: "0.95rem" }}>Recent Activities</h3>
+          {activity.length === 0 && <p className="empty-state">No recent activity.</p>}
+          {activity.length > 0 && (
+            <table>
+              <thead><tr><th>Time</th><th>Activity</th><th>Device</th></tr></thead>
+              <tbody>
+                {activity.map((a) => (
+                  <tr key={a.id}>
+                    <td>{new Date(a.issued_at).toLocaleTimeString()}</td>
+                    <td>{a.command_type}</td>
+                    <td>{a.employee_name || a.device_uid}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div>
+          <h3 style={{ fontSize: "0.95rem" }}>Security Alerts</h3>
+          {alerts.length === 0 && <p className="empty-state">No active alerts.</p>}
+          {alerts.slice(0, 8).map((a, i) => (
+            <div key={i} className="alert-card" style={{ marginBottom: "0.4rem" }}>
+              <div>
+                <div className="alert-title">{a.device}</div>
+                <div className="alert-desc">{a.message}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <h3 style={{ fontSize: "0.95rem" }}>Quick Actions</h3>
+      <div className="quick-actions">
+        <button onClick={() => onNavigate("devices")}>➕ Enroll Device</button>
+        <button onClick={() => onNavigate("employees")}>➕ Add Employee</button>
+        <button onClick={() => onNavigate("departments")}>📜 Create Policy</button>
+        <button onClick={() => onNavigate("notifications")}>📢 Send Notification</button>
+        <button onClick={loadAll}>🔄 Refresh Dashboard</button>
+        <button onClick={() => onNavigate("reports")}>📊 Generate Report</button>
+      </div>
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
-  const [page, setPage] = useState("devices");
+  const [page, setPage] = useState("overview");
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1359,6 +1554,22 @@ function Dashboard({ token, user, onLogout }) {
   const [generatedUid, setGeneratedUid] = useState(null);
   const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
   const [policies, setPolicies] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+
+  async function handleSearchChange(value) {
+    setSearchQuery(value);
+    if (!value.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    try {
+      const results = await globalSearch(token, value);
+      setSearchResults(results);
+    } catch (err) {
+      // silent — search is a convenience feature
+    }
+  }
 
   async function loadPolicies() {
     try {
@@ -1404,27 +1615,58 @@ function Dashboard({ token, user, onLogout }) {
   }
 
   return (
-    <div className="dashboard">
-      <header className="topbar">
-        <h1>CyberNest</h1>
-        <nav className="top-nav">
-          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>Organization</button>
-          <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>Departments</button>
-          <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>Employees</button>
-          <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>Devices</button>
-          <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>Activity Logs</button>
-          <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>Alerts</button>
-          <button className={page === "profile" ? "active" : ""} onClick={() => setPage("profile")}>Profile</button>
-          <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>Notifications</button>
-          <button className={page === "reports" ? "active" : ""} onClick={() => setPage("reports")}>Reports</button>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <h1 className="sidebar-logo">CyberNest</h1>
+        <nav className="sidebar-nav">
+          <button className={page === "overview" ? "active" : ""} onClick={() => setPage("overview")}>📊 Dashboard</button>
+          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>🏢 Organization</button>
+          <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>🗂️ Departments</button>
+          <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>👤 Employees</button>
+          <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>📱 Devices</button>
+          <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>📜 Activity Logs</button>
+          <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>🚨 Alerts</button>
+          <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>📢 Notifications</button>
+          <button className={page === "reports" ? "active" : ""} onClick={() => setPage("reports")}>📈 Reports</button>
+          <button className={page === "profile" ? "active" : ""} onClick={() => setPage("profile")}>⚙️ Profile</button>
         </nav>
-        <div className="topbar-right">
-          <span>{user.name}</span>
-          <button className="ghost" onClick={onLogout}>Sign out</button>
-        </div>
-      </header>
+      </aside>
+
+      <div className="main-area">
+        <header className="top-header">
+          <input
+            type="text"
+            className="global-search"
+            placeholder="Search devices, employees, departments, policies..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+          <div className="topbar-right">
+            <span>{user.name}</span>
+            <button className="ghost-dark" onClick={onLogout}>Sign out</button>
+          </div>
+
+          {searchResults && (
+            <div className="search-results">
+              {Object.entries(searchResults).every(([, v]) => v.length === 0) && (
+                <div className="search-result-empty">No results</div>
+              )}
+              {Object.entries(searchResults).map(([type, items]) =>
+                items.length > 0 ? (
+                  <div key={type} className="search-result-group">
+                    <div className="search-result-heading">{type}</div>
+                    {items.map((item, i) => (
+                      <div key={i} className="search-result-item">{item.name || item.employee_name || item.device_uid}</div>
+                    ))}
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
+        </header>
 
       <main>
+        {page === "overview" && <DashboardOverview token={token} user={user} onNavigate={setPage} />}
         {page === "org" && <OrganizationView token={token} />}
         {page === "departments" && <DepartmentsView token={token} policies={policies} />}
         {page === "employees" && <EmployeesView token={token} />}
@@ -1510,6 +1752,7 @@ function Dashboard({ token, user, onLogout }) {
         </>
         )}
       </main>
+      </div>
 
       {toast && (
         <div className={`toast ${toast.isError ? "toast-error" : ""}`}>

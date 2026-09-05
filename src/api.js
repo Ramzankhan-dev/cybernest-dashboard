@@ -52,6 +52,41 @@ export async function resetPassword(email, otp, password) {
   return data;
 }
 
+export async function getDashboardSummary(token) {
+  const res = await fetch(`${BASE_URL}/api/dashboard/summary`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load dashboard");
+  return data;
+}
+
+export async function getDashboardCharts(token) {
+  const res = await fetch(`${BASE_URL}/api/dashboard/charts`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load charts");
+  return data;
+}
+
+export async function getDashboardActivity(token) {
+  const res = await fetch(`${BASE_URL}/api/dashboard/activity`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load activity");
+  return data;
+}
+
+export async function getDashboardAlerts(token) {
+  const res = await fetch(`${BASE_URL}/api/dashboard/alerts`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load alerts");
+  return data;
+}
+
+export async function globalSearch(token, q) {
+  const res = await fetch(`${BASE_URL}/api/dashboard/search?q=${encodeURIComponent(q)}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Search failed");
+  return data;
+}
+
 export async function getDevices(token) {
   const res = await fetch(`${BASE_URL}/api/devices`, {
     headers: authHeaders(token),
