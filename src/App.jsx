@@ -1383,7 +1383,53 @@ function OrganizationView({ token }) {
   );
 }
 
-function DepartmentsView({ token, policies }) {
+function DepartmentsOrgCardsView({ token, policies }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    getAllOrganizations(token, { limit: 100 })
+      .then((data) => setOrgs(data.organizations))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (selectedOrg) {
+    return (
+      <DepartmentsView
+        token={token}
+        policies={policies}
+        organizationId={selectedOrg.id}
+        onBack={() => setSelectedOrg(null)}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <h2>Departments — by Organization</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
+      {!loading && orgs.length > 0 && (
+        <div className="report-grid">
+          {orgs.map((org) => (
+            <div key={org.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedOrg(org)}>
+              <h4 style={{ margin: 0 }}>{org.name}</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>{org.code}</p>
+              <div className="report-stat">{org.department_count}</div>
+              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>departments</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DepartmentsView({ token, policies, organizationId, onBack }) {
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -1405,13 +1451,14 @@ function DepartmentsView({ token, policies }) {
     if (search) params.search = search;
     if (statusFilter) params.status = statusFilter;
     if (sort) params.sort = sort;
+    if (organizationId) params.organization_id = organizationId;
     getDepartments(token, params)
       .then((data) => { setDepartments(data.departments); setTotal(data.total); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [page, statusFilter, sort]);
+  useEffect(() => { load(); }, [page, statusFilter, sort, organizationId]);
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -1428,7 +1475,9 @@ function DepartmentsView({ token, policies }) {
       if (editingId) {
         await updateDepartment(token, editingId, { name: name.trim(), description, default_policy_id: policyId || null });
       } else {
-        await createDepartment(token, { name: name.trim(), code: code.trim().toUpperCase(), description, default_policy_id: policyId || null });
+        const payload = { name: name.trim(), code: code.trim().toUpperCase(), description, default_policy_id: policyId || null };
+        if (organizationId) payload.organization_id = organizationId;
+        await createDepartment(token, payload);
       }
       setName(""); setCode(""); setDescription(""); setPolicyId(""); setEditingId(null);
       load();
@@ -1468,7 +1517,10 @@ function DepartmentsView({ token, policies }) {
 
   return (
     <section>
-      <h2>Departments</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Departments</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+      </div>
       <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
         <form onSubmit={handleCreate} className="policy-form">
           <input type="text" placeholder="Department name, e.g. Sales" value={name} onChange={(e) => setName(e.target.value)} />
@@ -2000,7 +2052,9 @@ function Dashboard({ token, user, onLogout }) {
       <main>
         {page === "overview" && <DashboardOverview token={token} user={user} onNavigate={setPage} />}
         {page === "org" && (user.is_super_admin ? <OrganizationsAdminView token={token} /> : <OrganizationView token={token} />)}
-        {page === "departments" && <DepartmentsView token={token} policies={policies} />}
+        {page === "departments" && (user.is_super_admin
+          ? <DepartmentsOrgCardsView token={token} policies={policies} />
+          : <DepartmentsView token={token} policies={policies} />)}
         {page === "employees" && <EmployeesView token={token} />}
         {page === "activity" && <ActivityLogsView token={token} />}
         {page === "alerts" && <AlertsView devices={devices} />}
