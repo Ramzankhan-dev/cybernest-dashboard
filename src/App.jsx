@@ -1616,7 +1616,54 @@ function DepartmentsView({ token, policies, organizationId, onBack }) {
   );
 }
 
-function EmployeesView({ token }) {
+function EmployeesOrgCardsView({ token }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    getAllOrganizations(token, { limit: 100 })
+      .then((data) => setOrgs(data.organizations))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (selectedOrg) {
+    return (
+      <EmployeesView
+        token={token}
+        organizationId={selectedOrg.id}
+        onBack={() => setSelectedOrg(null)}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <h2>Employees — by Organization</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
+      {!loading && orgs.length > 0 && (
+        <div className="report-grid">
+          {orgs.map((org) => (
+            <div key={org.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedOrg(org)}>
+              <h4 style={{ margin: 0 }}>{org.name}</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>
+                {org.code} · Admin: {org.admin_name || "—"}
+              </p>
+              <div className="report-stat">{org.employee_count}</div>
+              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>employees</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function EmployeesView({ token, organizationId, onBack }) {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
@@ -1647,11 +1694,13 @@ function EmployeesView({ token }) {
     if (statusFilter) params.status = statusFilter;
     if (roleFilter) params.role = roleFilter;
     if (sort) params.sort = sort;
+    if (organizationId) params.organization_id = organizationId;
     getEmployees(token, params).then((data) => { setEmployees(data.employees); setTotal(data.total); }).catch((err) => setError(err.message));
-    getDepartments(token).then((data) => setDepartments(data.departments)).catch(() => {});
+    const deptParams = organizationId ? { organization_id: organizationId, limit: 100 } : {};
+    getDepartments(token, deptParams).then((data) => setDepartments(data.departments)).catch(() => {});
   }
 
-  useEffect(() => { load(); }, [page, deptFilter, statusFilter, roleFilter, sort]);
+  useEffect(() => { load(); }, [page, deptFilter, statusFilter, roleFilter, sort, organizationId]);
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -1742,7 +1791,10 @@ function EmployeesView({ token }) {
 
   return (
     <section>
-      <h2>Employees</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Employees</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+      </div>
       <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
         <form onSubmit={handleCreate} className="policy-form">
           <input type="text" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
@@ -2182,7 +2234,9 @@ function Dashboard({ token, user, onLogout }) {
         {page === "departments" && (user.is_super_admin
           ? <DepartmentsOrgCardsView token={token} policies={policies} />
           : <DepartmentsView token={token} policies={policies} />)}
-        {page === "employees" && <EmployeesView token={token} />}
+        {page === "employees" && (user.is_super_admin
+          ? <EmployeesOrgCardsView token={token} />
+          : <EmployeesView token={token} organizationId={user.organization_id} />)}
         {page === "activity" && <ActivityLogsView token={token} />}
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
