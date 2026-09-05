@@ -15,6 +15,14 @@ import {
   getApiKeys,
   sendNotification,
   getNotifications,
+  getMyOrganization,
+  updateMyOrganization,
+  getDepartments,
+  createDepartment,
+  getEmployees,
+  createEmployee,
+  assignEmployeeDevice,
+  setEmployeeStatus,
 } from "./api";
 import { exportToCSV, exportToPDF } from "./exportUtils";
 
@@ -906,6 +914,267 @@ function ReportsView({ devices, policies, token }) {
   );
 }
 
+function OrganizationView({ token }) {
+  const [org, setOrg] = useState(null);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function load() {
+    getMyOrganization(token).then((data) => {
+      setOrg(data);
+      setName(data.name);
+    }).catch(() => {});
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      await updateMyOrganization(token, name);
+      setMessage("Organization updated.");
+      load();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!org) return <section><h2>Organization</h2><p>Loading...</p></section>;
+
+  return (
+    <section>
+      <h2>Organization</h2>
+      <div className="policy-panel">
+        <form onSubmit={handleSave} className="policy-form">
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          <button type="submit" disabled={saving || !name.trim()}>
+            {saving ? "Saving..." : "Save name"}
+          </button>
+        </form>
+        {message && <p style={{ fontSize: "0.85rem", marginTop: "0.5rem" }}>{message}</p>}
+        <div className="report-grid" style={{ marginTop: "1.2rem" }}>
+          <div className="report-card"><h4>Departments</h4><div className="report-stat">{org.department_count}</div></div>
+          <div className="report-card"><h4>Devices</h4><div className="report-stat">{org.device_count}</div></div>
+          <div className="report-card"><h4>Admins</h4><div className="report-stat">{org.admin_count}</div></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DepartmentsView({ token, policies }) {
+  const [departments, setDepartments] = useState([]);
+  const [name, setName] = useState("");
+  const [policyId, setPolicyId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function load() {
+    getDepartments(token).then(setDepartments).catch(() => {});
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await createDepartment(token, name.trim(), policyId || null);
+      setName("");
+      setPolicyId("");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section>
+      <h2>Departments</h2>
+      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+        <form onSubmit={handleCreate} className="policy-form">
+          <input
+            type="text"
+            placeholder="Department name, e.g. Sales"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <select value={policyId} onChange={(e) => setPolicyId(e.target.value)}>
+            <option value="">No default policy</option>
+            {policies.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button type="submit" disabled={saving || !name.trim()}>
+            {saving ? "Creating..." : "Create department"}
+          </button>
+        </form>
+        {error && <p className="error-text">{error}</p>}
+      </div>
+
+      {departments.length === 0 && <p className="empty-state">No departments yet.</p>}
+      {departments.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Default policy</th>
+              <th>Employees</th>
+              <th>Devices assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {departments.map((d) => (
+              <tr key={d.id}>
+                <td>{d.name}</td>
+                <td>{d.policy_name || "—"}</td>
+                <td>{d.employee_count}</td>
+                <td>{d.device_count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function EmployeesView({ token }) {
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [deptId, setDeptId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [deviceInputs, setDeviceInputs] = useState({});
+  const [acting, setActing] = useState(null);
+
+  function load() {
+    getEmployees(token).then(setEmployees).catch(() => {});
+    getDepartments(token).then(setDepartments).catch(() => {});
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!name.trim() || !deptId) return;
+    setSaving(true);
+    setError("");
+    try {
+      await createEmployee(token, name.trim(), code.trim(), deptId);
+      setName("");
+      setCode("");
+      setDeptId("");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAssignDevice(employeeId) {
+    const deviceUid = (deviceInputs[employeeId] || "").trim();
+    if (!deviceUid) return;
+    setActing(employeeId);
+    try {
+      await assignEmployeeDevice(token, employeeId, deviceUid);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function handleToggleStatus(employee) {
+    setActing(employee.id);
+    try {
+      await setEmployeeStatus(token, employee.id, employee.status === "active" ? "suspended" : "active");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActing(null);
+    }
+  }
+
+  return (
+    <section>
+      <h2>Employees</h2>
+      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+        <form onSubmit={handleCreate} className="policy-form">
+          <input type="text" placeholder="Employee name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input type="text" placeholder="Employee code (optional)" value={code} onChange={(e) => setCode(e.target.value)} />
+          <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+            <option value="">Select department…</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+          <button type="submit" disabled={saving || !name.trim() || !deptId}>
+            {saving ? "Adding..." : "Add employee"}
+          </button>
+        </form>
+        {error && <p className="error-text">{error}</p>}
+      </div>
+
+      {employees.length === 0 && <p className="empty-state">No employees yet.</p>}
+      {employees.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Device</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((e) => (
+              <tr key={e.id}>
+                <td>{e.name} {e.employee_code && <span className="mono" style={{ fontSize: "0.75rem" }}>({e.employee_code})</span>}</td>
+                <td>{e.department_name}</td>
+                <td>{e.device_uid ? `${e.model || e.device_uid}` : "Unassigned"}</td>
+                <td>{e.status}</td>
+                <td className="actions">
+                  {!e.device_uid && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Device UID"
+                        style={{ width: "110px" }}
+                        value={deviceInputs[e.id] || ""}
+                        onChange={(ev) => setDeviceInputs({ ...deviceInputs, [e.id]: ev.target.value })}
+                      />
+                      <button disabled={acting !== null} onClick={() => handleAssignDevice(e.id)}>Assign</button>
+                    </>
+                  )}
+                  <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
+                    {e.status === "active" ? "Suspend" : "Reinstate"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
   const [page, setPage] = useState("devices");
   const [devices, setDevices] = useState([]);
@@ -965,6 +1234,9 @@ function Dashboard({ token, user, onLogout }) {
       <header className="topbar">
         <h1>CyberNest</h1>
         <nav className="top-nav">
+          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>Organization</button>
+          <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>Departments</button>
+          <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>Employees</button>
           <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>Devices</button>
           <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>Activity Logs</button>
           <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>Alerts</button>
@@ -979,6 +1251,9 @@ function Dashboard({ token, user, onLogout }) {
       </header>
 
       <main>
+        {page === "org" && <OrganizationView token={token} />}
+        {page === "departments" && <DepartmentsView token={token} policies={policies} />}
+        {page === "employees" && <EmployeesView token={token} />}
         {page === "activity" && <ActivityLogsView token={token} />}
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}

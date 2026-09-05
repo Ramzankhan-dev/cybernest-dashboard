@@ -133,6 +133,88 @@ export async function getNotifications(token) {
   return data;
 }
 
+export async function getMyOrganization(token) {
+  const res = await fetch(`${BASE_URL}/api/organizations/me`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load organization");
+  return data;
+}
+
+export async function updateMyOrganization(token, name) {
+  const res = await fetch(`${BASE_URL}/api/organizations/me`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ name }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update organization");
+  return data;
+}
+
+export async function getDepartments(token) {
+  const res = await fetch(`${BASE_URL}/api/departments`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load departments");
+  return data;
+}
+
+export async function createDepartment(token, name, defaultPolicyId) {
+  const res = await fetch(`${BASE_URL}/api/departments`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ name, default_policy_id: defaultPolicyId || null }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to create department");
+  return data;
+}
+
+export async function getEmployees(token) {
+  const res = await fetch(`${BASE_URL}/api/employees`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load employees");
+  return data;
+}
+
+export async function createEmployee(token, name, employeeCode, departmentId) {
+  const res = await fetch(`${BASE_URL}/api/employees`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ name, employee_code: employeeCode || null, department_id: departmentId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to add employee");
+  return data;
+}
+
+export async function assignEmployeeDevice(token, employeeId, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/employees/${employeeId}/assign-device`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ device_uid: deviceUid }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to assign device");
+  return data;
+}
+
+export async function setEmployeeStatus(token, employeeId, status) {
+  const res = await fetch(`${BASE_URL}/api/employees/${employeeId}/status`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update employee status");
+  return data;
+}
+
 export async function getPolicies(token) {
   const res = await fetch(`${BASE_URL}/api/policies`, {
     headers: authHeaders(token),
