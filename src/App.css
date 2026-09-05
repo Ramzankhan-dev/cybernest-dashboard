@@ -1,15 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
+  --bg: #0A0E17;
+  --bg-elevated: #0D1220;
+  --card: #131A2B;
+  --card-hover: #171F33;
+  --line: #232B40;
   --navy: #1D2A44;
-  --navy-light: #2C3B5C;
-  --teal: #0F6E56;
-  --teal-light: #E1F5EE;
-  --cream: #FAF9F6;
-  --line: #D8D5CB;
-  --text: #232323;
-  --text-muted: #6B6A64;
-  --danger: #B3432A;
+  --teal: #14E8A6;
+  --teal-dim: rgba(20, 232, 166, 0.12);
+  --text: #E8EAF0;
+  --text-muted: #7C8598;
+  --danger: #E5484D;
+  --danger-dim: rgba(229, 72, 77, 0.12);
+  --amber: #F5A623;
+  --amber-dim: rgba(245, 166, 35, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +22,7 @@
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--cream);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -29,14 +34,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--navy);
+  background: var(--bg);
 }
 
 .login-card {
-  background: var(--cream);
+  background: var(--card);
+  border: 1px solid var(--line);
   padding: 2.5rem;
   width: 340px;
-  border-radius: 4px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
 }
@@ -45,8 +51,9 @@ body {
   margin: 0 0 0.25rem;
   font-size: 1.6rem;
   letter-spacing: -0.02em;
-  color: var(--navy);
+  color: var(--text);
 }
+.login-card h1::after { content: ""; }
 
 .login-card .subtitle {
   margin: 0 0 1.5rem;
@@ -59,30 +66,33 @@ body {
   font-weight: 600;
   margin-bottom: 0.3rem;
   margin-top: 0.9rem;
-  color: var(--navy);
+  color: var(--text-muted);
 }
 
 .login-card input {
   padding: 0.6rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.95rem;
   font-family: inherit;
+  background: var(--bg-elevated);
+  color: var(--text);
 }
+.login-card input:focus { outline: none; border-color: var(--teal); }
 
 .login-card button {
   margin-top: 1.5rem;
   padding: 0.7rem;
   background: var(--teal);
-  color: white;
+  color: #05130E;
   border: none;
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.login-card button:disabled { opacity: 0.6; cursor: default; }
+.login-card button:disabled { opacity: 0.5; cursor: default; }
 
 .error-text {
   color: var(--danger);
@@ -99,41 +109,7 @@ body {
 }
 .forgot-link:hover { text-decoration: underline; }
 
-/* ---------- Dashboard ---------- */
-.dashboard { min-height: 100vh; }
-
-.topbar {
-  background: var(--navy);
-  color: white;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.topbar h1 {
-  margin: 0;
-  font-size: 1.2rem;
-  letter-spacing: -0.01em;
-}
-
-.top-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.top-nav button {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.75);
-  padding: 0.4rem 0.9rem;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.82rem;
-}
-
-/* ---------- Sidebar Layout (SRS-000/003) ---------- */
+/* ---------- Sidebar Layout ---------- */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -141,8 +117,9 @@ body {
 
 .sidebar {
   width: 220px;
-  background: var(--navy);
-  color: white;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--line);
+  color: var(--text);
   flex-shrink: 0;
   padding: 1.2rem 0.8rem;
   display: flex;
@@ -152,7 +129,9 @@ body {
 .sidebar-logo {
   font-size: 1.15rem;
   margin: 0 0 1.5rem 0.4rem;
+  color: var(--text);
 }
+.sidebar-logo::after { content: ""; }
 
 .sidebar-nav {
   display: flex;
@@ -164,18 +143,20 @@ body {
   text-align: left;
   background: transparent;
   border: none;
-  color: rgba(255,255,255,0.75);
+  color: var(--text-muted);
   padding: 0.6rem 0.7rem;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
 }
 .sidebar-nav button.active {
-  background: var(--teal);
-  color: white;
+  background: var(--teal-dim);
+  color: var(--teal);
+  font-weight: 600;
 }
 .sidebar-nav button:hover:not(.active) {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
 }
 
 .main-area {
@@ -187,7 +168,7 @@ body {
 
 .top-header {
   position: relative;
-  background: white;
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--line);
   padding: 0.8rem 1.5rem;
   display: flex;
@@ -201,19 +182,23 @@ body {
   max-width: 420px;
   padding: 0.5rem 0.8rem;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.85rem;
+  background: var(--card);
+  color: var(--text);
 }
+.global-search:focus { outline: none; border-color: var(--teal); }
+.global-search::placeholder { color: var(--text-muted); }
 
 .search-results {
   position: absolute;
   top: 100%;
   left: 1.5rem;
   width: 420px;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.4);
   max-height: 320px;
   overflow-y: auto;
   z-index: 20;
@@ -240,18 +225,18 @@ body {
 }
 
 .kpi-card {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.9rem;
   text-align: center;
 }
-.kpi-card:hover { border-color: var(--teal); }
+.kpi-card:hover { border-color: var(--teal); background: var(--card-hover); }
 
 .kpi-value {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--text);
   font-family: 'JetBrains Mono', monospace;
 }
 .kpi-label {
@@ -268,12 +253,12 @@ body {
 }
 
 .chart-card {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.9rem;
 }
-.chart-card h4 { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--navy); }
+.chart-card h4 { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--text); }
 
 .dash-two-col {
   display: grid;
@@ -288,10 +273,10 @@ body {
 .alert-card {
   display: flex;
   gap: 0.8rem;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
   border-left: 3px solid var(--danger);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.8rem 1rem;
   margin-bottom: 0.6rem;
 }
@@ -299,7 +284,7 @@ body {
 .alert-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--text);
 }
 
 .alert-desc {
@@ -320,10 +305,12 @@ body {
   min-height: 80px;
   padding: 0.6rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 5px;
   font-family: inherit;
   font-size: 0.88rem;
   resize: vertical;
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 .report-grid {
@@ -333,15 +320,15 @@ body {
 }
 
 .report-card {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 1rem;
 }
 
 .report-card h4 {
   font-size: 0.88rem;
-  color: var(--navy);
+  color: var(--text);
   margin: 0 0 0.5rem;
 }
 
@@ -360,10 +347,11 @@ body {
 
 .report-actions button {
   flex: 1;
-  background: white;
+  background: var(--bg-elevated);
   border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.4rem 0;
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.8rem;
   cursor: pointer;
 }
@@ -377,40 +365,40 @@ body {
   align-items: center;
   gap: 1rem;
   font-size: 0.9rem;
+  color: var(--text);
 }
 
 button.ghost {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
+  border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.4rem 0.9rem;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 0.85rem;
 }
+button.ghost:hover { border-color: var(--teal); color: var(--teal); }
 
 main {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem;
+  width: 100%;
 }
 
 h2 {
   font-size: 1rem;
   text-transform: none;
-  color: var(--navy);
+  color: var(--text);
   margin: 0 0 0.8rem;
   border-bottom: 1px solid var(--line);
   padding-bottom: 0.5rem;
 }
 
-.enroll-panel {
-  margin-bottom: 2.5rem;
-}
+h3 { color: var(--text); }
 
-.policy-panel {
-  margin-bottom: 2.5rem;
-}
+.enroll-panel { margin-bottom: 2.5rem; }
+.policy-panel { margin-bottom: 2.5rem; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
 
 .policy-form {
   display: flex;
@@ -419,14 +407,18 @@ h2 {
   flex-wrap: wrap;
 }
 
-.policy-form input[type="text"] {
+.policy-form input[type="text"],
+.policy-form input[type="time"],
+.policy-form select {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 5px;
   font-family: inherit;
   font-size: 0.9rem;
   flex: 1;
   min-width: 200px;
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 .policy-form label {
@@ -435,16 +427,18 @@ h2 {
   gap: 0.3rem;
   font-size: 0.85rem;
   white-space: nowrap;
+  color: var(--text);
 }
 
 .policy-form button {
-  background: var(--navy);
-  color: white;
+  background: var(--teal);
+  color: #05130E;
   border: none;
   padding: 0.55rem 1rem;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -460,6 +454,7 @@ h2 {
   font-size: 0.88rem;
   display: flex;
   justify-content: space-between;
+  color: var(--text);
 }
 
 .policy-flags {
@@ -476,29 +471,33 @@ h2 {
   flex: 1;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 5px;
   font-family: inherit;
   font-size: 0.9rem;
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 .enroll-form button {
-  background: var(--navy);
-  color: white;
+  background: var(--teal);
+  color: #05130E;
   border: none;
   padding: 0.55rem 1rem;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .generated-code {
   margin-top: 0.8rem;
   padding: 0.9rem 1rem;
-  background: var(--teal-light);
+  background: var(--teal-dim);
   border-left: 3px solid var(--teal);
   font-size: 0.85rem;
-  border-radius: 2px;
+  border-radius: 4px;
+  color: var(--text);
 }
 
 .generated-code p { margin: 0 0 0.6rem; }
@@ -507,7 +506,7 @@ h2 {
   display: block;
   background: white;
   padding: 8px;
-  border-radius: 3px;
+  border-radius: 5px;
 }
 
 table {
@@ -519,15 +518,18 @@ table {
 th {
   text-align: left;
   padding: 0.6rem 0.5rem;
-  border-bottom: 1px solid var(--navy);
-  color: var(--navy);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 td {
   padding: 0.7rem 0.5rem;
   border-bottom: 1px solid var(--line);
+  color: var(--text);
 }
 
 .status-dot {
@@ -539,10 +541,10 @@ td {
   background: var(--text-muted);
 }
 .status-dot.online { background: var(--teal); }
-.status-dot.pending { background: #C99A3E; }
+.status-dot.pending { background: var(--amber); }
 
 .app-block-row td {
-  background: #F3F2EC;
+  background: var(--bg-elevated);
   padding: 0.5rem 0.5rem 0.8rem;
   border-bottom: 1px solid var(--line);
 }
@@ -556,51 +558,56 @@ td {
 .app-block-row input {
   padding: 0.3rem 0.5rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.8rem;
   width: 220px;
   margin-right: 0.5rem;
+  background: var(--card);
+  color: var(--text);
 }
 
 .app-block-row button {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.3rem 0.6rem;
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.78rem;
   cursor: pointer;
   margin-right: 0.4rem;
 }
 
-.actions { display: flex; gap: 0.4rem; }
+.actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 
 .actions button {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.35rem 0.6rem;
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.78rem;
   cursor: pointer;
 }
 .actions button:hover { border-color: var(--teal); color: var(--teal); }
-.actions button.danger:hover { border-color: var(--danger); color: var(--danger); }
+.actions button.danger { color: var(--danger); border-color: var(--danger-dim); }
+.actions button.danger:hover { border-color: var(--danger); background: var(--danger-dim); }
 
 .empty-state { color: var(--text-muted); font-size: 0.9rem; }
 
 .history-panel {
   margin-top: 2.5rem;
   padding: 1.2rem;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .details-panel {
   margin-top: 2.5rem;
   padding: 1.2rem;
-  background: white;
-  border: 1px solid var(--navy);
-  border-radius: 4px;
+  background: var(--card);
+  border: 1px solid var(--teal-dim);
+  border-radius: 8px;
 }
 
 .tab-strip {
@@ -633,15 +640,17 @@ td {
 }
 
 .quick-actions button {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.4rem 0.8rem;
-  border-radius: 3px;
+  border-radius: 5px;
   font-size: 0.8rem;
   cursor: pointer;
 }
 .quick-actions button:hover { border-color: var(--teal); color: var(--teal); }
-.quick-actions button.danger:hover { border-color: var(--danger); color: var(--danger); }
+.quick-actions button.danger { color: var(--danger); }
+.quick-actions button.danger:hover { border-color: var(--danger); background: var(--danger-dim); }
 
 .history-header {
   display: flex;
@@ -655,22 +664,38 @@ td {
 button.ghost-dark {
   background: transparent;
   border: 1px solid var(--line);
-  color: var(--navy);
+  color: var(--text);
   padding: 0.35rem 0.8rem;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 0.8rem;
 }
+button.ghost-dark:hover { border-color: var(--teal); color: var(--teal); }
 
 .toast {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  background: var(--navy);
-  color: white;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--text);
   padding: 0.8rem 1.2rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.85rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
-.toast.toast-error { background: var(--danger); }
+.toast.toast-error { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+
+/* ---------- Status badges (pills) ---------- */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge.active { background: var(--teal-dim); color: var(--teal); }
+.badge.setup { background: var(--amber-dim); color: var(--amber); }
+.badge.suspended { background: var(--danger-dim); color: var(--danger); }

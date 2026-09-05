@@ -75,7 +75,7 @@ function LoginScreen({ onLogin }) {
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>CyberNest</h1>
+        <h1>Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
         <p className="subtitle">Sign in to manage your devices</p>
 
         <label>Email</label>
@@ -174,7 +174,7 @@ function ForgotPasswordFlow({ onBackToLogin }) {
       className="login-card"
       onSubmit={step === "email" ? handleSendOtp : step === "otp" ? handleVerifyOtp : handleResetPassword}
     >
-      <h1>CyberNest</h1>
+      <h1>Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
 
       {step === "email" && (
         <>
@@ -1617,7 +1617,7 @@ function Dashboard({ token, user, onLogout }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <h1 className="sidebar-logo">CyberNest</h1>
+        <h1 className="sidebar-logo">Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
         <nav className="sidebar-nav">
           <button className={page === "overview" ? "active" : ""} onClick={() => setPage("overview")}>📊 Dashboard</button>
           <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>🏢 Organization</button>
