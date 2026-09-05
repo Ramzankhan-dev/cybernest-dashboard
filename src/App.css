@@ -699,3 +699,48 @@ button.ghost-dark:hover { border-color: var(--teal); color: var(--teal); }
 .badge.active { background: var(--teal-dim); color: var(--teal); }
 .badge.setup { background: var(--amber-dim); color: var(--amber); }
 .badge.suspended { background: var(--danger-dim); color: var(--danger); }
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-card h3 { color: var(--text); }
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-form label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.7rem;
+  margin-bottom: 0.25rem;
+}
+
+.modal-form input,
+.modal-form select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+}

@@ -20,6 +20,11 @@ import {
   getNotifications,
   getMyOrganization,
   updateMyOrganization,
+  getAllOrganizations,
+  createOrganization,
+  updateOrganization,
+  setOrganizationStatus,
+  deleteOrganization,
   getDepartments,
   createDepartment,
   getEmployees,
@@ -1094,6 +1099,235 @@ function ReportsView({ devices, policies, token }) {
   );
 }
 
+function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
+  const [form, setForm] = useState(initial || {
+    name: "", code: "", industry: "", email: "", contact_number: "", country: "", city: "", address: "",
+    admin_name: "", admin_email: "", admin_password: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field, value) { setForm({ ...form, [field]: value }); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      if (isEdit) {
+        await updateOrganization(token, initial.id, form);
+      } else {
+        await createOrganization(token, form);
+      }
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>{isEdit ? "Edit Organization" : "Create Organization"}</h3>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <label>Organization Name *</label>
+          <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} required />
+
+          {!isEdit && (
+            <>
+              <label>Organization Code * (e.g. ACME001)</label>
+              <input type="text" value={form.code} onChange={(e) => set("code", e.target.value.toUpperCase())} required />
+            </>
+          )}
+
+          <label>Industry *</label>
+          <input type="text" value={form.industry} onChange={(e) => set("industry", e.target.value)} required />
+
+          <label>Email *</label>
+          <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required />
+
+          <label>Contact Number</label>
+          <input type="text" value={form.contact_number} onChange={(e) => set("contact_number", e.target.value)} />
+
+          <label>Country *</label>
+          <input type="text" value={form.country} onChange={(e) => set("country", e.target.value)} required />
+
+          <label>City</label>
+          <input type="text" value={form.city} onChange={(e) => set("city", e.target.value)} />
+
+          <label>Address</label>
+          <input type="text" value={form.address} onChange={(e) => set("address", e.target.value)} />
+
+          {!isEdit && (
+            <>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.8rem 0 0.3rem" }}>
+                Optional: create the first Organization Admin for this org now
+              </p>
+              <label>Admin Name</label>
+              <input type="text" value={form.admin_name} onChange={(e) => set("admin_name", e.target.value)} />
+              <label>Admin Email</label>
+              <input type="email" value={form.admin_email} onChange={(e) => set("admin_email", e.target.value)} />
+              <label>Admin Password</label>
+              <input type="password" value={form.admin_password} onChange={(e) => set("admin_password", e.target.value)} />
+            </>
+          )}
+
+          {error && <p className="error-text">{error}</p>}
+
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</button>
+            <button type="button" className="ghost-dark" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function OrganizationsAdminView({ token }) {
+  const [orgs, setOrgs] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sort, setSort] = useState("");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingOrg, setEditingOrg] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = { page, limit: 20 };
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      if (sort) params.sort = sort;
+      const data = await getAllOrganizations(token, params);
+      setOrgs(data.organizations);
+      setTotal(data.total);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [page, statusFilter, sort]);
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    setPage(1);
+    load();
+  }
+
+  async function handleStatusChange(org, newStatus) {
+    try {
+      await setOrganizationStatus(token, org.id, newStatus);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDelete(org) {
+    if (!window.confirm(`Delete "${org.name}"? This cannot be undone (blocked if it still has devices).`)) return;
+    try {
+      await deleteOrganization(token, org.id);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <section>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Organizations</h2>
+        <button onClick={() => { setEditingOrg(null); setShowModal(true); }}>+ Create Organization</button>
+      </div>
+
+      <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
+        <input type="text" placeholder="Search organizations..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="">Sort: Newest</option>
+          <option value="name">Sort: Name</option>
+          <option value="device_count">Sort: Device count</option>
+          <option value="status">Sort: Status</option>
+        </select>
+        <button type="submit">Search</button>
+        <button type="button" className="ghost-dark" onClick={load}>Refresh</button>
+      </form>
+
+      {error && <p className="error-text">{error}</p>}
+      {loading && <p>Loading...</p>}
+      {!loading && orgs.length === 0 && <p className="empty-state">No organizations found.</p>}
+
+      {!loading && orgs.length > 0 && (
+        <div className="report-grid">
+          {orgs.map((org) => (
+            <div key={org.id} className="report-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h4 style={{ margin: 0 }}>{org.name}</h4>
+                <span className={`badge ${org.status === "active" ? "active" : org.status === "suspended" ? "suspended" : "setup"}`}>
+                  {org.status}
+                </span>
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>
+                {org.code} · {org.industry} · {org.country}
+              </p>
+              <table style={{ marginBottom: "0.8rem" }}>
+                <tbody>
+                  <tr><td>Departments</td><td style={{ textAlign: "right" }}>{org.department_count}</td></tr>
+                  <tr><td>Employees</td><td style={{ textAlign: "right" }}>{org.employee_count}</td></tr>
+                  <tr><td>Devices</td><td style={{ textAlign: "right" }}>{org.device_count}</td></tr>
+                  <tr><td>Admin</td><td style={{ textAlign: "right" }}>{org.admin_name || "—"}</td></tr>
+                </tbody>
+              </table>
+              <div className="actions">
+                <button onClick={() => { setEditingOrg(org); setShowModal(true); }}>Edit</button>
+                {org.status === "active" ? (
+                  <button onClick={() => handleStatusChange(org, "suspended")}>Suspend</button>
+                ) : (
+                  <button onClick={() => handleStatusChange(org, "active")}>Activate</button>
+                )}
+                <button className="danger" onClick={() => handleDelete(org)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {total > 20 && (
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", justifyContent: "center" }}>
+          <button className="ghost-dark" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Page {page} of {Math.ceil(total / 20)}</span>
+          <button className="ghost-dark" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>Next</button>
+        </div>
+      )}
+
+      {showModal && (
+        <OrgFormModal
+          initial={editingOrg}
+          isEdit={!!editingOrg}
+          token={token}
+          onClose={() => setShowModal(false)}
+          onSaved={() => { setShowModal(false); load(); }}
+        />
+      )}
+    </section>
+  );
+}
+
 function OrganizationView({ token }) {
   const [org, setOrg] = useState(null);
   const [name, setName] = useState("");
@@ -1620,7 +1854,7 @@ function Dashboard({ token, user, onLogout }) {
         <h1 className="sidebar-logo">Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
         <nav className="sidebar-nav">
           <button className={page === "overview" ? "active" : ""} onClick={() => setPage("overview")}>📊 Dashboard</button>
-          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>🏢 Organization</button>
+          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>🏢 {user.is_super_admin ? "Organizations" : "Organization"}</button>
           <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>🗂️ Departments</button>
           <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>👤 Employees</button>
           <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>📱 Devices</button>
@@ -1667,7 +1901,7 @@ function Dashboard({ token, user, onLogout }) {
 
       <main>
         {page === "overview" && <DashboardOverview token={token} user={user} onNavigate={setPage} />}
-        {page === "org" && <OrganizationView token={token} />}
+        {page === "org" && (user.is_super_admin ? <OrganizationsAdminView token={token} /> : <OrganizationView token={token} />)}
         {page === "departments" && <DepartmentsView token={token} policies={policies} />}
         {page === "employees" && <EmployeesView token={token} />}
         {page === "activity" && <ActivityLogsView token={token} />}
