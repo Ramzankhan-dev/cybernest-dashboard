@@ -110,9 +110,8 @@ export async function getApiKeys(token) {
   return data;
 }
 
-export async function sendNotification(token, message, targetDeviceUid = null) {
-  const body = { message };
-  if (targetDeviceUid) body.target_device_uid = targetDeviceUid;
+export async function sendNotification(token, message, target = {}) {
+  const body = { message, ...target };
 
   const res = await fetch(`${BASE_URL}/api/notifications/send`, {
     method: "POST",

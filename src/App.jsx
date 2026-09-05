@@ -749,7 +749,8 @@ function ProfileView({ token, user }) {
 
 function NotificationCenterView({ token, devices }) {
   const [message, setMessage] = useState("");
-  const [target, setTarget] = useState(""); // "" = everyone
+  const [target, setTarget] = useState(""); // "" = everyone, "dept:ID", "device:UID"
+  const [departments, setDepartments] = useState([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState([]);
@@ -761,6 +762,7 @@ function NotificationCenterView({ token, devices }) {
 
   useEffect(() => {
     loadSent();
+    getDepartments(token).then(setDepartments).catch(() => {});
   }, []);
 
   async function handleSend(e) {
@@ -769,7 +771,13 @@ function NotificationCenterView({ token, devices }) {
     setSending(true);
     setError("");
     try {
-      const data = await sendNotification(token, message.trim(), target || null);
+      let targetPayload = {};
+      if (target.startsWith("dept:")) {
+        targetPayload = { target_department_id: target.slice(5) };
+      } else if (target.startsWith("device:")) {
+        targetPayload = { target_device_uid: target.slice(7) };
+      }
+      await sendNotification(token, message.trim(), targetPayload);
       setMessage("");
       setTarget("");
       loadSent();
@@ -795,9 +803,16 @@ function NotificationCenterView({ token, devices }) {
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
             <select value={target} onChange={(e) => setTarget(e.target.value)}>
               <option value="">Everyone</option>
-              {devices.map((d) => (
-                <option key={d.id} value={d.device_uid}>{d.employee_name || d.device_uid}</option>
-              ))}
+              <optgroup label="Departments">
+                {departments.map((d) => (
+                  <option key={`dept-${d.id}`} value={`dept:${d.id}`}>{d.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Devices">
+                {devices.map((d) => (
+                  <option key={`device-${d.id}`} value={`device:${d.device_uid}`}>{d.employee_name || d.device_uid}</option>
+                ))}
+              </optgroup>
             </select>
             <button type="submit" disabled={sending || !message.trim()}>
               {sending ? "Sending..." : "Send notification"}
@@ -824,7 +839,7 @@ function NotificationCenterView({ token, devices }) {
             {sent.map((n) => (
               <tr key={n.id}>
                 <td>{n.message}</td>
-                <td>{n.target_device_uid || "Everyone"}</td>
+                <td>{n.target_device_uid || n.department_name || "Everyone"}</td>
                 <td>{n.device_count}</td>
                 <td>{new Date(n.sent_at).toLocaleString()}</td>
               </tr>
@@ -851,9 +866,13 @@ function ReportCard({ title, stat, headers, rows, filenameBase }) {
 
 function ReportsView({ devices, policies, token }) {
   const [logs, setLogs] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
     getActivityLogs(token).then(setLogs).catch(() => {});
+    getDepartments(token).then(setDepartments).catch(() => {});
+    getEmployees(token).then(setEmployees).catch(() => {});
   }, []);
 
   // 1. Device Inventory
@@ -899,11 +918,23 @@ function ReportsView({ devices, policies, token }) {
     new Date(l.issued_at).toLocaleString(), l.admin_name || "System", l.command_type, l.employee_name || l.device_uid, l.status,
   ]);
 
+  // 7. Department Usage
+  const deptHeaders = ["Department", "Default policy", "Employees", "Devices assigned"];
+  const deptRows = departments.map((d) => [d.name, d.policy_name || "—", d.employee_count, d.device_count]);
+
+  // 8. Employee Report
+  const employeeHeaders = ["Name", "Code", "Department", "Device", "Status"];
+  const employeeRows = employees.map((e) => [
+    e.name, e.employee_code || "—", e.department_name, e.device_uid ? (e.model || e.device_uid) : "Unassigned", e.status,
+  ]);
+
   return (
     <section>
       <h2>Reports</h2>
       <div className="report-grid">
         <ReportCard title="Device Inventory" stat={`${devices.length} devices`} headers={inventoryHeaders} rows={inventoryRows} filenameBase="device-inventory" />
+        <ReportCard title="Department Usage" stat={`${departments.length} departments`} headers={deptHeaders} rows={deptRows} filenameBase="department-usage" />
+        <ReportCard title="Employee Report" stat={`${employees.length} employees`} headers={employeeHeaders} rows={employeeRows} filenameBase="employee-report" />
         <ReportCard title="Policy Report" stat={`${policies.length} policies`} headers={policyHeaders} rows={policyRows} filenameBase="policy-report" />
         <ReportCard title="Security Report" stat={`${securityRows.length} issues`} headers={securityHeaders} rows={securityRows} filenameBase="security-report" />
         <ReportCard title="Battery Health" stat={`Avg. ${avgBattery}%`} headers={batteryHeaders} rows={batteryRows} filenameBase="battery-health" />
