@@ -90,6 +90,15 @@ body {
   margin: 0.8rem 0 0;
 }
 
+.forgot-link {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--teal);
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.forgot-link:hover { text-decoration: underline; }
+
 /* ---------- Dashboard ---------- */
 .dashboard { min-height: 100vh; }
 
