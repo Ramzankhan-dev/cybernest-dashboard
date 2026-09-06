@@ -1548,16 +1548,29 @@ function ReportCard({ title, stat, headers, rows, filenameBase }) {
   );
 }
 
-function ReportsView({ devices, policies, token }) {
+function ReportsView({ devices, policies, token, organizationId }) {
   const [logs, setLogs] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [complianceRows, setComplianceRows] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  function loadDateFiltered() {
+    const params = { limit: 500 };
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    getActivityLogs(token, params).then((data) => setLogs(data.commands)).catch(() => {});
+  }
 
   useEffect(() => {
-    getActivityLogs(token).then(setLogs).catch(() => {});
-    getDepartments(token).then((data) => setDepartments(data.departments)).catch(() => {});
-    getEmployees(token).then(setEmployees).catch(() => {});
-  }, []);
+    loadDateFiltered();
+    getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {});
+    getEmployees(token, { organization_id: organizationId, limit: 500 }).then((data) => setEmployees(data.employees)).catch(() => {});
+    getCompliance(token, { organization_id: organizationId, limit: 500 }).then((data) => setComplianceRows(data.compliance)).catch(() => {});
+    getApplications(token, { organization_id: organizationId, limit: 500 }).then((data) => setApplications(data.applications)).catch(() => {});
+  }, [organizationId]);
 
   // 1. Device Inventory
   const inventoryHeaders = ["Employee", "Device UID", "Model", "Manufacturer", "Android", "IMEI", "Battery %", "Status"];
@@ -1596,8 +1609,8 @@ function ReportsView({ devices, policies, token }) {
   const storageHeaders = ["Employee", "Device UID", "Used GB", "Total GB"];
   const storageRows = devices.filter((d) => d.storage_used_gb != null).map((d) => [d.employee_name || "Unassigned", d.device_uid, d.storage_used_gb, d.storage_total_gb]);
 
-  // 6. Activity Report
-  const activityHeaders = ["Time", "Admin", "Action", "Device", "Status"];
+  // 6. Activity / Command Report (date-range filterable)
+  const activityHeaders = ["Time", "Admin", "Command", "Device", "Status"];
   const activityRows = logs.map((l) => [
     new Date(l.issued_at).toLocaleString(), l.admin_name || "System", l.command_type, l.employee_name || l.device_uid, l.status,
   ]);
@@ -1612,14 +1625,37 @@ function ReportsView({ devices, policies, token }) {
     e.name, e.employee_code || "—", e.department_name, e.device_uid ? (e.model || e.device_uid) : "Unassigned", e.status,
   ]);
 
+  // 9. Compliance Report (SRS-015)
+  const complianceHeaders = ["Device", "Employee", "Department", "Policy", "Status", "Last Sync"];
+  const complianceReportRows = complianceRows.map((r) => [
+    r.model || r.device_uid, r.assigned_employee_name || r.employee_name || "—", r.department_name || "—",
+    r.policy_name || "—", r.compliance_status, r.last_seen ? new Date(r.last_seen).toLocaleString() : "Never",
+  ]);
+
+  // 10. Application Report (SRS-015)
+  const appHeaders = ["Name", "Package", "Category", "Status", "Assigned Devices", "Installed"];
+  const appRows = applications.map((a) => [
+    a.name, a.package_name, a.category, a.status === "active" ? "Allowed" : "Blocked", a.assigned_devices_count, a.installed_count,
+  ]);
+
   return (
     <section>
       <h2>Reports</h2>
+
+      <div className="policy-form" style={{ marginBottom: "1rem" }}>
+        <label style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Date range for Activity Report:</label>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        <button type="button" onClick={loadDateFiltered}>Apply</button>
+      </div>
+
       <div className="report-grid">
         <ReportCard title="Device Inventory" stat={`${devices.length} devices`} headers={inventoryHeaders} rows={inventoryRows} filenameBase="device-inventory" />
         <ReportCard title="Department Usage" stat={`${departments.length} departments`} headers={deptHeaders} rows={deptRows} filenameBase="department-usage" />
         <ReportCard title="Employee Report" stat={`${employees.length} employees`} headers={employeeHeaders} rows={employeeRows} filenameBase="employee-report" />
         <ReportCard title="Policy Report" stat={`${policies.length} policies`} headers={policyHeaders} rows={policyRows} filenameBase="policy-report" />
+        <ReportCard title="Compliance Report" stat={`${complianceReportRows.length} assigned`} headers={complianceHeaders} rows={complianceReportRows} filenameBase="compliance-report" />
+        <ReportCard title="Application Report" stat={`${applications.length} apps`} headers={appHeaders} rows={appRows} filenameBase="application-report" />
         <ReportCard title="Security Report" stat={`${securityRows.length} issues`} headers={securityHeaders} rows={securityRows} filenameBase="security-report" />
         <ReportCard title="Battery Health" stat={`Avg. ${avgBattery}%`} headers={batteryHeaders} rows={batteryRows} filenameBase="battery-health" />
         <ReportCard title="Storage Report" stat={`${storageRows.length} devices`} headers={storageHeaders} rows={storageRows} filenameBase="storage-report" />
@@ -3758,7 +3794,7 @@ function Dashboard({ token, user, onLogout }) {
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
         {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} />}
-        {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} />}
+        {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />}
 
         {page === "devices" && (user.is_super_admin
           ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} />
