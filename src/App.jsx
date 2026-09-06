@@ -2680,7 +2680,7 @@ function DevicesOrgCardsView({ token, policies, showToast }) {
   );
 }
 
-function CommandCenterView({ token, organizationId, showToast }) {
+function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
   const [tab, setTab] = useState("pending");
   const [commands, setCommands] = useState([]);
   const [total, setTotal] = useState(0);
@@ -2695,6 +2695,11 @@ function CommandCenterView({ token, organizationId, showToast }) {
   const [sending, setSending] = useState(false);
   const [acting, setActing] = useState(null);
 
+  const [orgs, setOrgs] = useState([]);
+  const [orgFilter, setOrgFilter] = useState(isSuperAdmin ? "" : organizationId);
+  const [departments, setDepartments] = useState([]);
+  const [deptFilter, setDeptFilter] = useState("all"); // "all" | department id
+
   function load() {
     setLoading(true);
     const params = { tab, page, limit: 30 };
@@ -2707,9 +2712,30 @@ function CommandCenterView({ token, organizationId, showToast }) {
   }
 
   useEffect(() => { load(); }, [tab, page]);
+
+  // Super Admin sees every organization to pick from first
   useEffect(() => {
-    getDevices(token, { organization_id: organizationId, limit: 200 }).then((d) => setDevices(d.devices)).catch(() => {});
-  }, [organizationId]);
+    if (isSuperAdmin) {
+      getAllOrganizations(token, { limit: 100 }).then((d) => setOrgs(d.organizations)).catch(() => {});
+    }
+  }, [isSuperAdmin]);
+
+  // Departments for whichever org is currently selected
+  useEffect(() => {
+    const orgToUse = isSuperAdmin ? orgFilter : organizationId;
+    if (!orgToUse) { setDepartments([]); return; }
+    getDepartments(token, { organization_id: orgToUse, limit: 100 }).then((d) => setDepartments(d.departments)).catch(() => {});
+    setDeptFilter("all");
+  }, [orgFilter, organizationId, isSuperAdmin]);
+
+  // Devices for the selected org + department ("all" = every device in that org)
+  useEffect(() => {
+    const orgToUse = isSuperAdmin ? orgFilter : organizationId;
+    if (!orgToUse) { setDevices([]); return; }
+    const params = { organization_id: orgToUse, limit: 200 };
+    if (deptFilter !== "all") params.department_id = deptFilter;
+    getDevices(token, params).then((d) => setDevices(d.devices)).catch(() => {});
+  }, [orgFilter, deptFilter, organizationId, isSuperAdmin]);
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -2783,12 +2809,29 @@ function CommandCenterView({ token, organizationId, showToast }) {
 
       <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
         <form onSubmit={handleSendCommand}>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.8rem" }}>
+            {isSuperAdmin && (
+              <select value={orgFilter} onChange={(e) => setOrgFilter(e.target.value)}>
+                <option value="">Select organization…</option>
+                {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+            )}
+            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} disabled={isSuperAdmin && !orgFilter}>
+              <option value="all">All Devices</option>
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>Select device(s):</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.8rem", maxHeight: "120px", overflowY: "auto" }}>
+            {devices.length === 0 && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No devices to show — pick an organization/department above.</p>}
             {devices.map((d) => (
               <label key={d.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", border: "1px solid var(--line)", padding: "0.3rem 0.6rem", borderRadius: "5px" }}>
                 <input type="checkbox" checked={selectedDevices.includes(d.device_uid)} onChange={() => toggleDeviceSelect(d.device_uid)} />
                 {d.model || d.device_uid} {d.assigned_employee_name ? `(${d.assigned_employee_name})` : ""}
+                {isSuperAdmin && orgFilter && (
+                  <span style={{ color: "var(--amber)", fontSize: "0.7rem" }}> · {orgs.find((o) => String(o.id) === String(orgFilter))?.name}</span>
+                )}
+                {d.department_name && <span style={{ color: "var(--teal)", fontSize: "0.7rem" }}> · {d.department_name}</span>}
               </label>
             ))}
           </div>
@@ -3009,7 +3052,7 @@ function Dashboard({ token, user, onLogout }) {
           ? <EmployeesOrgCardsView token={token} />
           : <EmployeesView token={token} organizationId={user.organization_id} />)}
         {page === "activity" && <ActivityLogsView token={token} />}
-        {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} showToast={showToast} />}
+        {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
         {page === "alerts" && <AlertsView devices={devices} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
         {page === "notifications" && <NotificationCenterView token={token} devices={devices} />}
