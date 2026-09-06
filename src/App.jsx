@@ -2128,6 +2128,256 @@ function DashboardOverview({ token, user, onNavigate }) {
   );
 }
 
+function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
+  const online = isDeviceOnline(device);
+  const [sending, setSending] = useState(null);
+
+  async function quickCommand(cmd) {
+    setSending(cmd);
+    try {
+      await sendCommand(token, device.device_uid, cmd);
+      onCommandSent(`${cmd} sent to ${device.model || device.device_uid}`);
+    } catch (err) {
+      onCommandSent(err.message, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
+  async function handleRemove() {
+    if (!window.confirm(`Remove "${device.model || device.device_uid}"? This unenrolls it permanently.`)) return;
+    try {
+      await removeDevice(token, device.device_uid);
+      onRemoved();
+    } catch (err) {
+      onCommandSent(err.message, true);
+    }
+  }
+
+  return (
+    <div className="report-card">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h4 style={{ margin: 0 }}>{device.model || "Unknown model"}</h4>
+        <span className={`badge ${online ? "active" : "suspended"}`}>{online ? "ONLINE" : "OFFLINE"}</span>
+      </div>
+      <table style={{ marginTop: "0.6rem", marginBottom: "0.8rem" }}>
+        <tbody>
+          <tr><td>IMEI</td><td className="mono" style={{ textAlign: "right" }}>{device.imei || "—"}</td></tr>
+          <tr><td>Android</td><td style={{ textAlign: "right" }}>{device.android_version || "—"}</td></tr>
+          <tr><td>Battery</td><td style={{ textAlign: "right" }}>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
+          <tr><td>User</td><td style={{ textAlign: "right" }}>{device.assigned_employee_name || device.employee_name || "Unassigned"}</td></tr>
+        </tbody>
+      </table>
+      <div className="actions">
+        <button onClick={() => onView(device.device_uid)}>View</button>
+        <button className="danger" disabled={sending !== null} onClick={() => quickCommand("lock")}>
+          {sending === "lock" ? "..." : "Lock"}
+        </button>
+        <button disabled={sending !== null} onClick={() => quickCommand("sync")}>
+          {sending === "sync" ? "..." : "Sync"}
+        </button>
+        <button className="danger" onClick={handleRemove}>Remove</button>
+      </div>
+    </div>
+  );
+}
+
+function DevicesCardListView({ token, policies, organizationId, departmentId, departmentName, onBack, showToast }) {
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
+  const [newDeviceName, setNewDeviceName] = useState("");
+  const [generatedUid, setGeneratedUid] = useState(null);
+
+  function load(searchOverride) {
+    setLoading(true);
+    const params = { organization_id: organizationId, department_id: departmentId, limit: 200 };
+    const s = searchOverride !== undefined ? searchOverride : search;
+    if (s) params.search = s;
+    getDevices(token, params)
+      .then((data) => setDevices(data.devices))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, [organizationId, departmentId]);
+
+  async function handleGenerateToken(e) {
+    e.preventDefault();
+    try {
+      const data = await generateEnrollmentToken(token, newDeviceName);
+      setGeneratedUid(data.device.device_uid);
+      setNewDeviceName("");
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  if (detailsDeviceUid) {
+    return (
+      <DeviceDetailsView
+        device={devices.find((d) => d.device_uid === detailsDeviceUid)}
+        token={token}
+        policies={policies}
+        onCommandSent={showToast}
+        onClose={() => setDetailsDeviceUid(null)}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Devices — {departmentName}</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Departments</button>}
+      </div>
+
+      <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
+        <form onSubmit={handleGenerateToken} className="enroll-form">
+          <input
+            type="text"
+            placeholder="Employee name (optional)"
+            value={newDeviceName}
+            onChange={(e) => setNewDeviceName(e.target.value)}
+          />
+          <button type="submit">+ Bulk Enroll</button>
+        </form>
+        {generatedUid && (
+          <div className="generated-code">
+            <p>Enrollment code: <span className="mono">{generatedUid}</span><br />Scan this QR in the CyberNest Agent app, or enter the code manually.</p>
+            <img className="qr-image" src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${generatedUid}`} alt="Enrollment QR code" />
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={(e) => { e.preventDefault(); load(); }} className="policy-form" style={{ marginBottom: "1rem" }}>
+        <input type="text" placeholder="Search by device, IMEI, or user..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button type="submit">Filter</button>
+      </form>
+
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && devices.length === 0 && <p className="empty-state">No devices in this department yet.</p>}
+      {!loading && devices.length > 0 && (
+        <div className="report-grid">
+          {devices.map((d) => (
+            <DeviceCard
+              key={d.id}
+              device={d}
+              token={token}
+              onView={setDetailsDeviceUid}
+              onCommandSent={showToast}
+              onRemoved={load}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToast }) {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedDept, setSelectedDept] = useState(null);
+
+  useEffect(() => {
+    getDepartments(token, { organization_id: organizationId, limit: 100 })
+      .then((data) => setDepartments(data.departments))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [organizationId]);
+
+  if (selectedDept) {
+    return (
+      <DevicesCardListView
+        token={token}
+        policies={policies}
+        organizationId={organizationId}
+        departmentId={selectedDept.id}
+        departmentName={selectedDept.name}
+        onBack={() => setSelectedDept(null)}
+        showToast={showToast}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Devices — Select a Department</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+      </div>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && departments.length === 0 && <p className="empty-state">No departments yet — create one first.</p>}
+      {!loading && departments.length > 0 && (
+        <div className="report-grid">
+          {departments.map((d) => (
+            <div key={d.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedDept(d)}>
+              <h4 style={{ margin: 0 }}>{d.name}</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>{d.code}</p>
+              <div className="report-stat">{d.device_count}</div>
+              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>devices</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DevicesOrgCardsView({ token, policies, showToast }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    getAllOrganizations(token, { limit: 100 })
+      .then((data) => setOrgs(data.organizations))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (selectedOrg) {
+    return (
+      <DevicesDeptCardsView
+        token={token}
+        policies={policies}
+        organizationId={selectedOrg.id}
+        onBack={() => setSelectedOrg(null)}
+        showToast={showToast}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <h2>Devices — Select an Organization</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
+      {!loading && orgs.length > 0 && (
+        <div className="report-grid">
+          {orgs.map((org) => (
+            <div key={org.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedOrg(org)}>
+              <h4 style={{ margin: 0 }}>{org.name}</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>{org.code} · Admin: {org.admin_name || "—"}</p>
+              <div className="report-stat">{org.device_count}</div>
+              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>devices</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Dashboard({ token, user, onLogout }) {
   const [page, setPage] = useState("overview");
   const [devices, setDevices] = useState([]);
@@ -2277,107 +2527,9 @@ function Dashboard({ token, user, onLogout }) {
         {page === "notifications" && <NotificationCenterView token={token} devices={devices} />}
         {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} />}
 
-        {page === "devices" && (
-        <>
-        <section className="enroll-panel">
-          <h2>Enroll a new device</h2>
-          <form onSubmit={handleGenerateToken} className="enroll-form">
-            <input
-              type="text"
-              placeholder="Employee name (optional)"
-              value={newDeviceName}
-              onChange={(e) => setNewDeviceName(e.target.value)}
-            />
-            <button type="submit">Generate enrollment code</button>
-          </form>
-          {generatedUid && (
-            <div className="generated-code">
-              <p>
-                Enrollment code: <span className="mono">{generatedUid}</span>
-                <br />
-                Scan this QR in the CyberNest Agent app, or enter the code manually.
-              </p>
-              <img
-                className="qr-image"
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${generatedUid}`}
-                alt="Enrollment QR code"
-              />
-            </div>
-          )}
-        </section>
-
-        <PolicyPanel token={token} policies={policies} onPolicyCreated={loadPolicies} />
-
-        <section>
-          <h2>Devices</h2>
-
-          {deviceStats && (
-            <div className="kpi-grid" style={{ marginBottom: "1.2rem" }}>
-              <KpiCard label="Total Devices" value={deviceStats.total_devices} />
-              <KpiCard label="Online" value={deviceStats.online_devices} />
-              <KpiCard label="Offline" value={deviceStats.offline_devices} />
-              <KpiCard label="Pending Enrollment" value={deviceStats.pending_enrollment} />
-              <KpiCard label="Locked Devices" value={deviceStats.locked_devices} />
-              <KpiCard label="Policy Violations" value={deviceStats.policy_violations} />
-            </div>
-          )}
-
-          <form onSubmit={handleDeviceSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
-            <input
-              type="text"
-              placeholder="Search by name, device ID, IMEI, employee, department..."
-              value={deviceSearch}
-              onChange={(e) => setDeviceSearch(e.target.value)}
-            />
-            <button type="submit">Search</button>
-            <button type="button" className="ghost-dark" onClick={() => loadDevices()}>Refresh</button>
-          </form>
-
-          {loading && <p>Loading devices...</p>}
-          {error && <p className="error-text">{error}</p>}
-          {!loading && devices.length === 0 && (
-            <p className="empty-state">No devices enrolled yet.</p>
-          )}
-          {!loading && devices.length > 0 && (
-            <table>
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Department</th>
-                  <th>Device UID</th>
-                  <th>Model</th>
-                  <th>Android</th>
-                  <th>Battery</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {devices.map((d) => (
-                  <DeviceRow
-                    key={d.id}
-                    device={d}
-                    onViewDetails={setDetailsDeviceUid}
-                    token={token}
-                    onRemoved={loadDevices}
-                  />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-
-        {detailsDeviceUid && (
-          <DeviceDetailsView
-            device={devices.find((d) => d.device_uid === detailsDeviceUid)}
-            token={token}
-            policies={policies}
-            onCommandSent={showToast}
-            onClose={() => setDetailsDeviceUid(null)}
-          />
-        )}
-        </>
-        )}
+        {page === "devices" && (user.is_super_admin
+          ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} />
+          : <DevicesDeptCardsView token={token} policies={policies} organizationId={user.organization_id} showToast={showToast} />)}
       </main>
       </div>
 
