@@ -563,7 +563,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
   }
 
   async function handleUnassign(policy) {
-    if (!window.confirm(`Unassign "${policy.name}" from all devices? This only clears the assignment record — it does not reverse restrictions already applied on those devices.`)) return;
+    if (!window.confirm(`Unassign "${policy.name}" from all devices? This will send unblock/reverse commands to each device (camera, wifi, kiosk, etc. as applicable) and clear the assignment.`)) return;
     try {
       const data = await unassignPolicyFromAll(token, policy.id);
       showToast(data.message);
