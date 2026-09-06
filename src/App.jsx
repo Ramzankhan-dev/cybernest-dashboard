@@ -1002,21 +1002,26 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             </button>
           </div>
           {policies.length > 0 && (
-            <ul className="policy-list">
-              {policies.map((p) => (
-                <li key={p.id}>
-                  <strong>{p.name}</strong>
-                  <span className="policy-flags">
-                    {p.camera_blocked && "Camera "}
-                    {p.bluetooth_blocked && "Bluetooth "}
-                    {p.wifi_restricted && "Wi-Fi "}
-                    {p.usb_transfer_blocked && "USB "}
-                    {p.kiosk_mode && "Kiosk "}
-                    {p.working_hours_start && p.working_hours_end && `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.4rem" }}>
+                All policies in your organization (not necessarily applied to this device — use "Apply policy" above to assign one):
+              </p>
+              <ul className="policy-list">
+                {policies.map((p) => (
+                  <li key={p.id}>
+                    <strong>{p.name}</strong>
+                    <span className="policy-flags">
+                      {p.camera_blocked && "Camera "}
+                      {p.bluetooth_blocked && "Bluetooth "}
+                      {p.wifi_restricted && "Wi-Fi "}
+                      {p.usb_transfer_blocked && "USB "}
+                      {p.kiosk_mode && "Kiosk "}
+                      {p.working_hours_start && p.working_hours_end && `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
