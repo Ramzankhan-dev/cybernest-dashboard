@@ -77,6 +77,7 @@ import {
   deleteEmployee,
   assignEmployeeDevice,
   setEmployeeStatus,
+  setEmployeePassword,
   getDashboardSummary,
   getDashboardCharts,
   getDashboardActivity,
@@ -2333,6 +2334,53 @@ function DepartmentsView({ token, policies, organizationId, onBack }) {
   );
 }
 
+function SetPasswordModal({ employee, token, onClose, onSaved }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirm) { setError("Passwords don't match"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await setEmployeePassword(token, employee.id, password);
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Set Password — {employee.name}</h3>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
+          Used for Employee Login on the Android agent (SRS-A04). The employee signs in with their Employee ID ({employee.employee_code}) or email.
+        </p>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <label>New Password *</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <label>Confirm Password *</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+
+          {error && <p className="error-text">{error}</p>}
+
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Set Password"}</button>
+            <button type="button" className="ghost-dark" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function EmployeesOrgCardsView({ token }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2404,6 +2452,7 @@ function EmployeesView({ token, organizationId, onBack }) {
   const [deviceInputs, setDeviceInputs] = useState({});
   const [availableDevices, setAvailableDevices] = useState([]);
   const [acting, setActing] = useState(null);
+  const [passwordModalEmployee, setPasswordModalEmployee] = useState(null);
 
   function load() {
     const params = { page, limit: 20 };
@@ -2625,6 +2674,7 @@ function EmployeesView({ token, organizationId, onBack }) {
                   <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
                     {e.status === "active" ? "Suspend" : "Reinstate"}
                   </button>
+                  <button disabled={acting !== null} onClick={() => setPasswordModalEmployee(e)}>Set Password</button>
                   <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
                 </td>
               </tr>
@@ -2639,6 +2689,15 @@ function EmployeesView({ token, organizationId, onBack }) {
           <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Page {page} of {Math.ceil(total / 20)}</span>
           <button className="ghost-dark" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>Next</button>
         </div>
+      )}
+
+      {passwordModalEmployee && (
+        <SetPasswordModal
+          employee={passwordModalEmployee}
+          token={token}
+          onClose={() => setPasswordModalEmployee(null)}
+          onSaved={() => { setPasswordModalEmployee(null); load(); }}
+        />
       )}
     </section>
   );
@@ -2902,6 +2961,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfilePolicyId, setNewProfilePolicyId] = useState("");
   const [newProfileExpiry, setNewProfileExpiry] = useState(24);
+  const [newProfileRequireLogin, setNewProfileRequireLogin] = useState(false);
 
   function load(searchOverride) {
     setLoading(true);
@@ -2942,8 +3002,9 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
         default_policy_id: newProfilePolicyId || null,
         default_department_id: departmentId,
         token_expiry_hours: newProfileExpiry,
+        require_employee_login: newProfileRequireLogin,
       });
-      setNewProfileName(""); setNewProfilePolicyId(""); setNewProfileExpiry(24); setShowProfileForm(false);
+      setNewProfileName(""); setNewProfilePolicyId(""); setNewProfileExpiry(24); setNewProfileRequireLogin(false); setShowProfileForm(false);
       loadProfiles();
     } catch (err) {
       showToast(err.message, true);
@@ -2995,6 +3056,10 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
               {policies.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <input type="number" placeholder="Token expiry (hours)" value={newProfileExpiry} onChange={(e) => setNewProfileExpiry(e.target.value)} style={{ width: "140px" }} />
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem" }}>
+              <input type="checkbox" checked={newProfileRequireLogin} onChange={(e) => setNewProfileRequireLogin(e.target.checked)} />
+              Require Employee Login (SRS-A04)
+            </label>
             <button type="submit">Save Profile</button>
           </form>
         )}
@@ -3003,7 +3068,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
           <ul className="policy-list" style={{ marginTop: "0.8rem" }}>
             {profiles.map((p) => (
               <li key={p.id}>
-                <span><strong>{p.name}</strong> <span className="policy-flags">{p.policy_name ? `· ${p.policy_name}` : ""} · {p.token_expiry_hours}h expiry</span></span>
+                <span><strong>{p.name}</strong> <span className="policy-flags">{p.policy_name ? `· ${p.policy_name}` : ""} · {p.token_expiry_hours}h expiry{p.require_employee_login ? " · Login required" : ""}</span></span>
                 <button className="danger" onClick={async () => {
                   if (!window.confirm(`Delete profile "${p.name}"?`)) return;
                   try { await deleteEnrollmentProfile(token, p.id); loadProfiles(); }

@@ -521,6 +521,17 @@ export async function setEmployeeStatus(token, employeeId, status) {
   return data;
 }
 
+export async function setEmployeePassword(token, employeeId, password) {
+  const res = await fetch(`${BASE_URL}/api/employees/${employeeId}/set-password`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to set password");
+  return data;
+}
+
 export async function getPolicies(token, params = {}) {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${BASE_URL}/api/policies?${qs}`, {
