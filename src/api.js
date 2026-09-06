@@ -450,8 +450,9 @@ export async function setEmployeeStatus(token, employeeId, status) {
   return data;
 }
 
-export async function getPolicies(token) {
-  const res = await fetch(`${BASE_URL}/api/policies`, {
+export async function getPolicies(token, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE_URL}/api/policies?${qs}`, {
     headers: authHeaders(token),
   });
   const data = await res.json();
@@ -467,6 +468,66 @@ export async function createPolicy(token, policy) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to create policy");
+  return data;
+}
+
+export async function updatePolicy(token, id, policy) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(policy),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update policy");
+  return data;
+}
+
+export async function duplicatePolicy(token, id) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}/duplicate`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to duplicate policy");
+  return data;
+}
+
+export async function setPolicyStatus(token, id, status) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}/status`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update status");
+  return data;
+}
+
+export async function deletePolicy(token, id) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete policy");
+  return data;
+}
+
+export async function getPolicyVersions(token, id) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}/versions`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load version history");
+  return data;
+}
+
+export async function assignPolicyToDepartment(token, policyId, departmentId) {
+  const res = await fetch(`${BASE_URL}/api/policies/${policyId}/assign-department`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ department_id: departmentId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to assign policy to department");
   return data;
 }
 

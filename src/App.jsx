@@ -14,6 +14,11 @@ import {
   getCommandHistory,
   getPolicies,
   createPolicy,
+  updatePolicy,
+  duplicatePolicy,
+  setPolicyStatus,
+  deletePolicy,
+  assignPolicyToDepartment,
   assignPolicy,
   getInstalledApps,
   getActivityLogs,
@@ -287,46 +292,33 @@ function DeviceRow({ device, onViewDetails, token, onRemoved }) {
   );
 }
 
-function PolicyPanel({ token, policies, onPolicyCreated }) {
-  const [name, setName] = useState("");
-  const [camera, setCamera] = useState(false);
-  const [bluetooth, setBluetooth] = useState(false);
-  const [wifi, setWifi] = useState(false);
-  const [usb, setUsb] = useState(false);
-  const [kiosk, setKiosk] = useState(false);
-  const [kioskPackage, setKioskPackage] = useState("");
-  const [hoursStart, setHoursStart] = useState("");
-  const [hoursEnd, setHoursEnd] = useState("");
+function PolicyAssignModal({ policy, token, onClose, showToast }) {
+  const [mode, setMode] = useState("device"); // device | department
+  const [deviceUid, setDeviceUid] = useState("");
+  const [departments, setDepartments] = useState([]);
+  const [departmentId, setDepartmentId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleCreate(e) {
+  useEffect(() => {
+    getDepartments(token, { organization_id: policy.organization_id, limit: 100 }).then((d) => setDepartments(d.departments)).catch(() => {});
+  }, []);
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim()) return;
     setSaving(true);
     setError("");
     try {
-      await createPolicy(token, {
-        name: name.trim(),
-        camera_blocked: camera,
-        bluetooth_blocked: bluetooth,
-        wifi_restricted: wifi,
-        usb_transfer_blocked: usb,
-        kiosk_mode: kiosk,
-        kiosk_package: kioskPackage || null,
-        working_hours_start: hoursStart || null,
-        working_hours_end: hoursEnd || null,
-      });
-      setName("");
-      setCamera(false);
-      setBluetooth(false);
-      setWifi(false);
-      setUsb(false);
-      setKiosk(false);
-      setKioskPackage("");
-      setHoursStart("");
-      setHoursEnd("");
-      onPolicyCreated();
+      if (mode === "device") {
+        if (!deviceUid.trim()) return;
+        const data = await assignPolicy(token, policy.id, deviceUid.trim());
+        showToast(`Policy applied — ${data.commands_sent.length} rule(s) sent`);
+      } else {
+        if (!departmentId) return;
+        const data = await assignPolicyToDepartment(token, policy.id, departmentId);
+        showToast(data.message);
+      }
+      onClose(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -335,56 +327,333 @@ function PolicyPanel({ token, policies, onPolicyCreated }) {
   }
 
   return (
-    <section className="policy-panel">
-      <h2>Policy templates</h2>
-      <form onSubmit={handleCreate} className="policy-form">
-        <input
-          type="text"
-          placeholder="Policy name, e.g. Restricted Mode"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <label><input type="checkbox" checked={camera} onChange={(e) => setCamera(e.target.checked)} /> Block camera</label>
-        <label><input type="checkbox" checked={bluetooth} onChange={(e) => setBluetooth(e.target.checked)} /> Block Bluetooth</label>
-        <label><input type="checkbox" checked={wifi} onChange={(e) => setWifi(e.target.checked)} /> Restrict Wi-Fi config</label>
-        <label><input type="checkbox" checked={usb} onChange={(e) => setUsb(e.target.checked)} /> Block USB transfer</label>
-        <label><input type="checkbox" checked={kiosk} onChange={(e) => setKiosk(e.target.checked)} /> Kiosk mode</label>
-        <input
-          type="text"
-          placeholder="Kiosk target app package (blank = lock to agent app)"
-          value={kioskPackage}
-          onChange={(e) => setKioskPackage(e.target.value)}
-          style={{ minWidth: "260px" }}
-        />
-        <label>
-          Working hours:
-          <input type="time" value={hoursStart} onChange={(e) => setHoursStart(e.target.value)} style={{ marginLeft: "0.4rem" }} />
-          –
-          <input type="time" value={hoursEnd} onChange={(e) => setHoursEnd(e.target.value)} />
-        </label>
-        <button type="submit" disabled={saving || !name.trim()}>
-          {saving ? "Saving..." : "Save policy"}
-        </button>
-      </form>
-      {error && <p className="error-text">{error}</p>}
+    <div className="modal-overlay" onClick={() => onClose(false)}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Assign "{policy.name}"</h3>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+          <button type="button" className={mode === "device" ? "" : "ghost-dark"} onClick={() => setMode("device")}>📱 To Device</button>
+          <button type="button" className={mode === "department" ? "" : "ghost-dark"} onClick={() => setMode("department")}>🏢 To Department</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          {mode === "device" ? (
+            <>
+              <label>Device UID</label>
+              <input type="text" value={deviceUid} onChange={(e) => setDeviceUid(e.target.value)} placeholder="Paste device_uid" />
+            </>
+          ) : (
+            <>
+              <label>Department</label>
+              <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+                <option value="">Select department…</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </>
+          )}
+          {error && <p className="error-text">{error}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Applying..." : "Apply"}</button>
+            <button type="button" className="ghost-dark" onClick={() => onClose(false)}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
-      {policies.length > 0 && (
-        <ul className="policy-list">
-          {policies.map((p) => (
-            <li key={p.id}>
-              <strong>{p.name}</strong>
-              <span className="policy-flags">
-                {p.camera_blocked && "Camera "}
-                {p.bluetooth_blocked && "Bluetooth "}
-                {p.wifi_restricted && "Wi-Fi "}
-                {p.usb_transfer_blocked && "USB "}
-                {p.kiosk_mode && "Kiosk "}
-                {p.working_hours_start && p.working_hours_end && `${p.working_hours_start.slice(0,5)}–${p.working_hours_end.slice(0,5)}`}
-              </span>
-            </li>
-          ))}
-        </ul>
+function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
+  const blank = {
+    name: "", policy_code: "", description: "",
+    camera_blocked: false, bluetooth_blocked: false, wifi_restricted: false, usb_transfer_blocked: false,
+    screenshot_blocked: false, usb_debugging_blocked: false, mobile_hotspot_blocked: false,
+    airplane_mode_blocked: false, location_services_blocked: false, factory_reset_blocked: false,
+    password_required: false, password_min_length: "", max_failed_attempts: "", auto_lock_timeout_minutes: "",
+    blocked_apps: "", prevent_unknown_sources: false, prevent_play_store: false,
+    root_detection_enabled: true, developer_options_disabled: false,
+    vpn_required: false, mobile_data_restricted: false,
+    kiosk_mode: false, kiosk_package: "", working_hours_start: "", working_hours_end: "",
+  };
+  const [form, setForm] = useState(initial ? { ...blank, ...initial } : blank);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field, value) { setForm({ ...form, [field]: value }); }
+  function checkbox(field, label) {
+    return <label><input type="checkbox" checked={!!form[field]} onChange={(e) => set(field, e.target.checked)} /> {label}</label>;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const payload = { ...form, organization_id: organizationId };
+      if (initial) await updatePolicy(token, initial.id, payload);
+      else await createPolicy(token, payload);
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" style={{ width: "560px" }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>{initial ? "Edit Policy" : "Create Policy"}</h3>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <label>Policy Name *</label>
+          <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} required />
+
+          {!initial && (
+            <>
+              <label>Policy Code * (e.g. SALES01)</label>
+              <input type="text" value={form.policy_code} onChange={(e) => set("policy_code", e.target.value.toUpperCase())} required />
+            </>
+          )}
+
+          <label>Description</label>
+          <input type="text" value={form.description || ""} onChange={(e) => set("description", e.target.value)} />
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Device Restrictions</p>
+          <div className="policy-checkbox-grid">
+            {checkbox("camera_blocked", "Camera")}
+            {checkbox("bluetooth_blocked", "Bluetooth")}
+            {checkbox("wifi_restricted", "Wi-Fi config")}
+            {checkbox("usb_transfer_blocked", "USB file transfer")}
+            {checkbox("screenshot_blocked", "Screenshot")}
+            {checkbox("usb_debugging_blocked", "USB debugging")}
+            {checkbox("mobile_hotspot_blocked", "Mobile hotspot")}
+            {checkbox("airplane_mode_blocked", "Airplane mode")}
+            {checkbox("location_services_blocked", "Location services")}
+            {checkbox("factory_reset_blocked", "Factory reset")}
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Password Policy</p>
+          <div className="policy-checkbox-grid">
+            {checkbox("password_required", "Password required")}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <input type="number" placeholder="Min length" value={form.password_min_length} onChange={(e) => set("password_min_length", e.target.value)} />
+            <input type="number" placeholder="Max failed attempts" value={form.max_failed_attempts} onChange={(e) => set("max_failed_attempts", e.target.value)} />
+            <input type="number" placeholder="Auto-lock (minutes)" value={form.auto_lock_timeout_minutes} onChange={(e) => set("auto_lock_timeout_minutes", e.target.value)} />
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Application Policy</p>
+          <input type="text" placeholder="Blocked app packages, comma-separated" value={form.blocked_apps || ""} onChange={(e) => set("blocked_apps", e.target.value)} />
+          <div className="policy-checkbox-grid">
+            {checkbox("prevent_unknown_sources", "Prevent unknown sources")}
+            {checkbox("prevent_play_store", "Prevent Play Store access")}
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Kiosk Policy</p>
+          <div className="policy-checkbox-grid">{checkbox("kiosk_mode", "Enable kiosk (single app) mode")}</div>
+          <input type="text" placeholder="Kiosk target app package (blank = agent app)" value={form.kiosk_package || ""} onChange={(e) => set("kiosk_package", e.target.value)} />
+          <label>Working hours (kiosk/camera/bluetooth auto-toggle)</label>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <input type="time" value={form.working_hours_start || ""} onChange={(e) => set("working_hours_start", e.target.value)} />
+            <span>–</span>
+            <input type="time" value={form.working_hours_end || ""} onChange={(e) => set("working_hours_end", e.target.value)} />
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Network Policy</p>
+          <div className="policy-checkbox-grid">
+            {checkbox("vpn_required", "VPN required")}
+            {checkbox("mobile_data_restricted", "Restrict mobile data")}
+          </div>
+          <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
+            Note: VPN/proxy enforcement is recorded here but not yet wired to an on-device action.
+          </p>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Security Policy</p>
+          <div className="policy-checkbox-grid">
+            {checkbox("root_detection_enabled", "Root detection")}
+            {checkbox("developer_options_disabled", "Disable developer options")}
+          </div>
+
+          {error && <p className="error-text">{error}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.2rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Policy"}</button>
+            <button type="button" className="ghost-dark" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PoliciesPageView({ token, organizationId, showToast }) {
+  const [policies, setPolicies] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sort, setSort] = useState("");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState(null);
+  const [assigningPolicy, setAssigningPolicy] = useState(null);
+
+  function load() {
+    setLoading(true);
+    const params = { organization_id: organizationId, page, limit: 20 };
+    if (search) params.search = search;
+    if (statusFilter) params.status = statusFilter;
+    if (sort) params.sort = sort;
+    getPolicies(token, params)
+      .then((data) => { setPolicies(data.policies); setTotal(data.total); })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, [page, statusFilter, sort, organizationId]);
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    setPage(1);
+    load();
+  }
+
+  async function handleDuplicate(policy) {
+    try {
+      await duplicatePolicy(token, policy.id);
+      showToast(`Duplicated "${policy.name}"`);
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  async function handleToggleStatus(policy) {
+    try {
+      await setPolicyStatus(token, policy.id, policy.status === "active" ? "disabled" : "active");
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  async function handleDelete(policy) {
+    if (!window.confirm(`Delete "${policy.name}"? Blocked if currently assigned.`)) return;
+    try {
+      await deletePolicy(token, policy.id);
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  return (
+    <section>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Policies</h2>
+        <button onClick={() => { setEditingPolicy(null); setShowFormModal(true); }}>+ Create Policy</button>
+      </div>
+
+      <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
+        <input type="text" placeholder="Search policies..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="disabled">Disabled</option>
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="">Sort: Recently updated</option>
+          <option value="name">Sort: Name</option>
+        </select>
+        <button type="submit">Search</button>
+        <button type="button" className="ghost-dark" onClick={load}>Refresh</button>
+      </form>
+
+      {error && <p className="error-text">{error}</p>}
+      {loading && <p>Loading...</p>}
+      {!loading && policies.length === 0 && <p className="empty-state">No policies yet.</p>}
+      {!loading && policies.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Code</th><th>Description</th><th>Devices</th><th>Departments</th><th>Status</th><th>Last Updated</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {policies.map((p) => (
+              <tr key={p.id}>
+                <td>{p.name}</td>
+                <td className="mono">{p.policy_code}</td>
+                <td>{p.description || "—"}</td>
+                <td>{p.assigned_devices_count}</td>
+                <td>{p.assigned_departments_count}</td>
+                <td><span className={`badge ${p.status === "active" ? "active" : "suspended"}`}>{p.status}</span></td>
+                <td>{new Date(p.updated_at || p.created_at).toLocaleDateString()}</td>
+                <td className="actions">
+                  <button onClick={() => { setEditingPolicy(p); setShowFormModal(true); }}>Edit</button>
+                  <button onClick={() => setAssigningPolicy(p)}>Assign</button>
+                  <button onClick={() => handleDuplicate(p)}>Duplicate</button>
+                  <button onClick={() => handleToggleStatus(p)}>{p.status === "active" ? "Disable" : "Enable"}</button>
+                  <button className="danger" onClick={() => handleDelete(p)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
+
+      {total > 20 && (
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", justifyContent: "center" }}>
+          <button className="ghost-dark" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Page {page} of {Math.ceil(total / 20)}</span>
+          <button className="ghost-dark" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>Next</button>
+        </div>
+      )}
+
+      {showFormModal && (
+        <PolicyFormModal
+          initial={editingPolicy}
+          token={token}
+          organizationId={organizationId}
+          onClose={() => setShowFormModal(false)}
+          onSaved={() => { setShowFormModal(false); load(); }}
+        />
+      )}
+
+      {assigningPolicy && (
+        <PolicyAssignModal
+          policy={assigningPolicy}
+          token={token}
+          showToast={showToast}
+          onClose={(refresh) => { setAssigningPolicy(null); if (refresh) load(); }}
+        />
+      )}
+    </section>
+  );
+}
+
+function PoliciesOrgCardsView({ token, showToast }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    getAllOrganizations(token, { limit: 100 }).then((data) => setOrgs(data.organizations)).catch((err) => setError(err.message)).finally(() => setLoading(false));
+  }, []);
+
+  if (selectedOrg) {
+    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} />;
+  }
+
+  return (
+    <section>
+      <h2>Policies — Select an Organization</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && orgs.map((org) => (
+        <div key={org.id} className="report-card" style={{ cursor: "pointer", marginBottom: "0.8rem" }} onClick={() => setSelectedOrg(org)}>
+          <h4 style={{ margin: 0 }}>{org.name}</h4>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0" }}>{org.code}</p>
+        </div>
+      ))}
     </section>
   );
 }
@@ -2407,8 +2676,8 @@ function Dashboard({ token, user, onLogout }) {
 
   async function loadPolicies() {
     try {
-      const data = await getPolicies(token);
-      setPolicies(data);
+      const data = await getPolicies(token, { organization_id: user.organization_id, limit: 200 });
+      setPolicies(data.policies);
     } catch (err) {
       // Non-critical — device list still works without policies
     }
@@ -2471,6 +2740,7 @@ function Dashboard({ token, user, onLogout }) {
           <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>🗂️ Departments</button>
           <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>👤 Employees</button>
           <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>📱 Devices</button>
+          <button className={page === "policies" ? "active" : ""} onClick={() => setPage("policies")}>📜 Policies</button>
           <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>📜 Activity Logs</button>
           <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>🚨 Alerts</button>
           <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>📢 Notifications</button>
@@ -2530,6 +2800,9 @@ function Dashboard({ token, user, onLogout }) {
         {page === "devices" && (user.is_super_admin
           ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} />
           : <DevicesDeptCardsView token={token} policies={policies} organizationId={user.organization_id} showToast={showToast} />)}
+        {page === "policies" && (user.is_super_admin
+          ? <PoliciesOrgCardsView token={token} showToast={showToast} />
+          : <PoliciesPageView token={token} organizationId={user.organization_id} showToast={showToast} />)}
       </main>
       </div>
 
