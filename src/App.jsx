@@ -2550,6 +2550,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
 
 function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToast }) {
   const [departments, setDepartments] = useState([]);
+  const [unassignedCount, setUnassignedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedDept, setSelectedDept] = useState(null);
@@ -2559,6 +2560,9 @@ function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToa
       .then((data) => setDepartments(data.departments))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    getDevices(token, { organization_id: organizationId, department_id: "unassigned", limit: 1 })
+      .then((data) => setUnassignedCount(data.total))
+      .catch(() => {});
   }, [organizationId]);
 
   if (selectedDept) {
@@ -2583,19 +2587,27 @@ function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToa
       </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
-      {!loading && departments.length === 0 && <p className="empty-state">No departments yet — create one first.</p>}
-      {!loading && departments.length > 0 && (
-        <div className="report-grid">
-          {departments.map((d) => (
-            <div key={d.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedDept(d)}>
-              <h4 style={{ margin: 0 }}>{d.name}</h4>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>{d.code}</p>
-              <div className="report-stat">{d.device_count}</div>
-              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>devices</div>
-            </div>
-          ))}
+      <div className="report-grid">
+        <div
+          className="report-card"
+          style={{ cursor: "pointer", borderColor: "var(--amber)" }}
+          onClick={() => setSelectedDept({ id: "unassigned", name: "Unassigned Devices" })}
+        >
+          <h4 style={{ margin: 0 }}>⚠️ Unassigned Devices</h4>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>Newly enrolled, no employee yet</p>
+          <div className="report-stat" style={{ color: "var(--amber)" }}>{unassignedCount}</div>
+          <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>devices</div>
         </div>
-      )}
+        {!loading && departments.map((d) => (
+          <div key={d.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedDept(d)}>
+            <h4 style={{ margin: 0 }}>{d.name}</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>{d.code}</p>
+            <div className="report-stat">{d.device_count}</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>devices</div>
+          </div>
+        ))}
+      </div>
+      {!loading && departments.length === 0 && <p className="empty-state" style={{ marginTop: "1rem" }}>No departments yet — create one first.</p>}
     </section>
   );
 }
