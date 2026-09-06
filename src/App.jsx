@@ -3000,7 +3000,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
         name: newProfileName.trim(),
         organization_id: organizationId,
         default_policy_id: newProfilePolicyId || null,
-        default_department_id: departmentId,
+        default_department_id: departmentId === "unassigned" ? null : departmentId,
         token_expiry_hours: newProfileExpiry,
         require_employee_login: newProfileRequireLogin,
       });
