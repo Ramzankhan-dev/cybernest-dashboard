@@ -2373,6 +2373,7 @@ function EmployeesView({ token, organizationId, onBack }) {
           <option value="department">Sort: Department</option>
         </select>
         <button type="submit">Search</button>
+        <button type="button" className="ghost-dark" onClick={load}>Refresh</button>
       </form>
 
       {employees.length === 0 && <p className="empty-state">No employees yet.</p>}
