@@ -1366,7 +1366,12 @@ function NotificationCenterView({ token, devices, organizationId }) {
       const base = { title: title.trim(), message: message.trim(), notification_type: notifType, priority, ...targetPayload() };
       if (scheduleEnabled) {
         if (!scheduledAt) { setError("Pick a schedule date/time"); setSending(false); return; }
-        await scheduleNotification(token, { ...base, scheduled_at: scheduledAt });
+        // The <input type="datetime-local"> value has no timezone info —
+        // JS parses it as the browser's LOCAL time, so converting to a
+        // proper UTC ISO string here keeps the actual delivery moment
+        // correct (and matching what's displayed later).
+        const scheduledAtUtc = new Date(scheduledAt).toISOString();
+        await scheduleNotification(token, { ...base, scheduled_at: scheduledAtUtc });
       } else {
         await sendNotification(token, base);
       }
