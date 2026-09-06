@@ -37,6 +37,7 @@ import {
   setPolicyStatus,
   deletePolicy,
   unassignPolicyFromAll,
+  unassignDevicePolicy,
   assignPolicyToDepartment,
   assignPolicy,
   getInstalledApps,
@@ -875,6 +876,19 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
     }
   }
 
+  async function handleUnassignPolicy() {
+    if (!window.confirm(`Remove the current policy from this device and reverse its restrictions (camera, Wi-Fi, kiosk, etc.)?`)) return;
+    setSending("unassign_policy");
+    try {
+      const data = await unassignDevicePolicy(token, device.device_uid);
+      onCommandSent(data.message);
+    } catch (err) {
+      onCommandSent(`Failed: ${err.message}`, true);
+    } finally {
+      setSending(null);
+    }
+  }
+
   return (
     <section className="details-panel">
       <div className="history-header">
@@ -939,6 +953,9 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             </select>
             <button disabled={sending !== null || !selectedPolicy} onClick={handleApplyPolicy}>
               {sending === "apply_policy" ? "Applying..." : "Apply policy"}
+            </button>
+            <button disabled={sending !== null} onClick={handleUnassignPolicy}>
+              {sending === "unassign_policy" ? "Removing..." : "Unassign current policy"}
             </button>
           </div>
           {policies.length > 0 && (

@@ -726,3 +726,13 @@ export async function unassignPolicyFromAll(token, id) {
   if (!res.ok) throw new Error(data.error || "Failed to unassign policy");
   return data;
 }
+
+export async function unassignDevicePolicy(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to unassign policy");
+  return data;
+}
