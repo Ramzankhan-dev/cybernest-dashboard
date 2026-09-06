@@ -716,3 +716,13 @@ export async function getEnrollmentHistory(token, organizationId) {
   if (!res.ok) throw new Error(data.error || "Failed to load enrollment history");
   return data;
 }
+
+export async function unassignPolicyFromAll(token, id) {
+  const res = await fetch(`${BASE_URL}/api/policies/${id}/unassign`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to unassign policy");
+  return data;
+}

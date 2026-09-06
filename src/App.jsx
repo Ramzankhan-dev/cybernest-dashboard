@@ -36,6 +36,7 @@ import {
   duplicatePolicy,
   setPolicyStatus,
   deletePolicy,
+  unassignPolicyFromAll,
   assignPolicyToDepartment,
   assignPolicy,
   getInstalledApps,
@@ -561,13 +562,36 @@ function PoliciesPageView({ token, organizationId, showToast }) {
     }
   }
 
+  async function handleUnassign(policy) {
+    if (!window.confirm(`Unassign "${policy.name}" from all devices? This only clears the assignment record — it does not reverse restrictions already applied on those devices.`)) return;
+    try {
+      const data = await unassignPolicyFromAll(token, policy.id);
+      showToast(data.message);
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
   async function handleDelete(policy) {
     if (!window.confirm(`Delete "${policy.name}"? Blocked if currently assigned.`)) return;
     try {
       await deletePolicy(token, policy.id);
       load();
     } catch (err) {
-      showToast(err.message, true);
+      if (err.message.toLowerCase().includes("assigned")) {
+        if (window.confirm(`${err.message}\n\nUnassign it from all devices now and try deleting again?`)) {
+          try {
+            await unassignPolicyFromAll(token, policy.id);
+            await deletePolicy(token, policy.id);
+            load();
+          } catch (err2) {
+            showToast(err2.message, true);
+          }
+        }
+      } else {
+        showToast(err.message, true);
+      }
     }
   }
 
@@ -616,6 +640,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
                 <td className="actions">
                   <button onClick={() => { setEditingPolicy(p); setShowFormModal(true); }}>Edit</button>
                   <button onClick={() => setAssigningPolicy(p)}>Assign</button>
+                  <button onClick={() => handleUnassign(p)}>Unassign All</button>
                   <button onClick={() => handleDuplicate(p)}>Duplicate</button>
                   <button onClick={() => handleToggleStatus(p)}>{p.status === "active" ? "Disable" : "Enable"}</button>
                   <button className="danger" onClick={() => handleDelete(p)}>Delete</button>
