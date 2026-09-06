@@ -5,6 +5,10 @@ import {
   verifyOtp,
   resetPassword,
   getDevices,
+  getDeviceStats,
+  assignDeviceToEmployee,
+  unassignDevice,
+  removeDevice,
   generateEnrollmentToken,
   sendCommand,
   getCommandHistory,
@@ -246,14 +250,30 @@ function ForgotPasswordFlow({ onBackToLogin }) {
   );
 }
 
-function DeviceRow({ device, onViewDetails }) {
+function DeviceRow({ device, onViewDetails, token, onRemoved }) {
   const online = isDeviceOnline(device);
+  const [removing, setRemoving] = useState(false);
+
+  async function handleRemove() {
+    if (!window.confirm(`Remove device "${device.employee_name || device.device_uid}"? This unenrolls it and clears all its policy associations.`)) return;
+    setRemoving(true);
+    try {
+      await removeDevice(token, device.device_uid);
+      onRemoved();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   return (
     <tr>
       <td>
         <span className={`status-dot ${online ? "online" : "pending"}`} />
-        {device.employee_name || "Unassigned"}
+        {device.assigned_employee_name || device.employee_name || "Unassigned"}
       </td>
+      <td>{device.department_name || "—"}</td>
       <td className="mono">{device.device_uid}</td>
       <td>{device.model || "—"}</td>
       <td>{device.android_version || "—"}</td>
@@ -261,6 +281,7 @@ function DeviceRow({ device, onViewDetails }) {
       <td>{online ? "online" : "offline"}</td>
       <td className="actions">
         <button onClick={() => onViewDetails(device.device_uid)}>View details</button>
+        <button className="danger" disabled={removing} onClick={handleRemove}>Remove</button>
       </td>
     </tr>
   );
@@ -2143,16 +2164,29 @@ function Dashboard({ token, user, onLogout }) {
     }
   }
 
-  async function loadDevices() {
+  const [deviceSearch, setDeviceSearch] = useState("");
+  const [deviceStats, setDeviceStats] = useState(null);
+
+  async function loadDevices(searchOverride) {
     setLoading(true);
     try {
-      const data = await getDevices(token);
-      setDevices(data);
+      const params = { organization_id: user.organization_id, limit: 200 };
+      const s = searchOverride !== undefined ? searchOverride : deviceSearch;
+      if (s) params.search = s;
+      const data = await getDevices(token, params);
+      setDevices(data.devices);
+      const stats = await getDeviceStats(token, user.organization_id);
+      setDeviceStats(stats);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleDeviceSearchSubmit(e) {
+    e.preventDefault();
+    loadDevices(deviceSearch);
   }
 
   useEffect(() => {
@@ -2276,6 +2310,29 @@ function Dashboard({ token, user, onLogout }) {
 
         <section>
           <h2>Devices</h2>
+
+          {deviceStats && (
+            <div className="kpi-grid" style={{ marginBottom: "1.2rem" }}>
+              <KpiCard label="Total Devices" value={deviceStats.total_devices} />
+              <KpiCard label="Online" value={deviceStats.online_devices} />
+              <KpiCard label="Offline" value={deviceStats.offline_devices} />
+              <KpiCard label="Pending Enrollment" value={deviceStats.pending_enrollment} />
+              <KpiCard label="Locked Devices" value={deviceStats.locked_devices} />
+              <KpiCard label="Policy Violations" value={deviceStats.policy_violations} />
+            </div>
+          )}
+
+          <form onSubmit={handleDeviceSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
+            <input
+              type="text"
+              placeholder="Search by name, device ID, IMEI, employee, department..."
+              value={deviceSearch}
+              onChange={(e) => setDeviceSearch(e.target.value)}
+            />
+            <button type="submit">Search</button>
+            <button type="button" className="ghost-dark" onClick={() => loadDevices()}>Refresh</button>
+          </form>
+
           {loading && <p>Loading devices...</p>}
           {error && <p className="error-text">{error}</p>}
           {!loading && devices.length === 0 && (
@@ -2286,6 +2343,7 @@ function Dashboard({ token, user, onLogout }) {
               <thead>
                 <tr>
                   <th>Employee</th>
+                  <th>Department</th>
                   <th>Device UID</th>
                   <th>Model</th>
                   <th>Android</th>
@@ -2300,6 +2358,8 @@ function Dashboard({ token, user, onLogout }) {
                     key={d.id}
                     device={d}
                     onViewDetails={setDetailsDeviceUid}
+                    token={token}
+                    onRemoved={loadDevices}
                   />
                 ))}
               </tbody>
