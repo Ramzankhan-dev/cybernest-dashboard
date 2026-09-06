@@ -2598,6 +2598,21 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
           </form>
         )}
 
+        {profiles.length > 0 && (
+          <ul className="policy-list" style={{ marginTop: "0.8rem" }}>
+            {profiles.map((p) => (
+              <li key={p.id}>
+                <span><strong>{p.name}</strong> <span className="policy-flags">{p.policy_name ? `· ${p.policy_name}` : ""} · {p.token_expiry_hours}h expiry</span></span>
+                <button className="danger" onClick={async () => {
+                  if (!window.confirm(`Delete profile "${p.name}"?`)) return;
+                  try { await deleteEnrollmentProfile(token, p.id); loadProfiles(); }
+                  catch (err) { showToast(err.message, true); }
+                }}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {generatedUid && (
           <div className="generated-code">
             <p>Enrollment code: <span className="mono">{generatedUid}</span><br />Scan this QR in the CyberNest Agent app, or enter the code manually.</p>
