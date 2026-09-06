@@ -511,7 +511,7 @@ function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
   );
 }
 
-function PoliciesPageView({ token, organizationId, showToast }) {
+function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh }) {
   const [policies, setPolicies] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -549,6 +549,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
       await duplicatePolicy(token, policy.id);
       showToast(`Duplicated "${policy.name}"`);
       load();
+      onGlobalRefresh && onGlobalRefresh();
     } catch (err) {
       showToast(err.message, true);
     }
@@ -558,6 +559,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
     try {
       await setPolicyStatus(token, policy.id, policy.status === "active" ? "disabled" : "active");
       load();
+      onGlobalRefresh && onGlobalRefresh();
     } catch (err) {
       showToast(err.message, true);
     }
@@ -569,6 +571,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
       const data = await unassignPolicyFromAll(token, policy.id);
       showToast(data.message);
       load();
+      onGlobalRefresh && onGlobalRefresh();
     } catch (err) {
       showToast(err.message, true);
     }
@@ -579,6 +582,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
     try {
       await deletePolicy(token, policy.id);
       load();
+      onGlobalRefresh && onGlobalRefresh();
     } catch (err) {
       if (err.message.toLowerCase().includes("assigned")) {
         if (window.confirm(`${err.message}\n\nUnassign it from all devices now and try deleting again?`)) {
@@ -586,6 +590,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
             await unassignPolicyFromAll(token, policy.id);
             await deletePolicy(token, policy.id);
             load();
+            onGlobalRefresh && onGlobalRefresh();
           } catch (err2) {
             showToast(err2.message, true);
           }
@@ -666,7 +671,7 @@ function PoliciesPageView({ token, organizationId, showToast }) {
           token={token}
           organizationId={organizationId}
           onClose={() => setShowFormModal(false)}
-          onSaved={() => { setShowFormModal(false); load(); }}
+          onSaved={() => { setShowFormModal(false); load(); onGlobalRefresh && onGlobalRefresh(); }}
         />
       )}
 
@@ -675,14 +680,14 @@ function PoliciesPageView({ token, organizationId, showToast }) {
           policy={assigningPolicy}
           token={token}
           showToast={showToast}
-          onClose={(refresh) => { setAssigningPolicy(null); if (refresh) load(); }}
+          onClose={(refresh) => { setAssigningPolicy(null); if (refresh) { load(); onGlobalRefresh && onGlobalRefresh(); } }}
         />
       )}
     </section>
   );
 }
 
-function PoliciesOrgCardsView({ token, showToast }) {
+function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -693,7 +698,7 @@ function PoliciesOrgCardsView({ token, showToast }) {
   }, []);
 
   if (selectedOrg) {
-    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} />;
+    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} onGlobalRefresh={onGlobalRefresh} />;
   }
 
   return (
@@ -3598,8 +3603,8 @@ function Dashboard({ token, user, onLogout }) {
           ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} />
           : <DevicesDeptCardsView token={token} policies={policies} organizationId={user.organization_id} showToast={showToast} />)}
         {page === "policies" && (user.is_super_admin
-          ? <PoliciesOrgCardsView token={token} showToast={showToast} />
-          : <PoliciesPageView token={token} organizationId={user.organization_id} showToast={showToast} />)}
+          ? <PoliciesOrgCardsView token={token} showToast={showToast} onGlobalRefresh={loadPolicies} />
+          : <PoliciesPageView token={token} organizationId={user.organization_id} showToast={showToast} onGlobalRefresh={loadPolicies} />)}
       </main>
       </div>
 
