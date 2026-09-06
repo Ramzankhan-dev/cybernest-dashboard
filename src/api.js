@@ -602,3 +602,82 @@ export async function forceSyncDevice(token, deviceUid) {
   if (!res.ok) throw new Error(data.error || "Failed to sync device");
   return data;
 }
+
+export async function getApplications(token, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE_URL}/api/applications?${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load applications");
+  return data;
+}
+
+export async function getApplicationStats(token, organizationId = null) {
+  const qs = organizationId ? `?organization_id=${organizationId}` : "";
+  const res = await fetch(`${BASE_URL}/api/applications/stats${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load application stats");
+  return data;
+}
+
+export async function createApplication(token, payload) {
+  const res = await fetch(`${BASE_URL}/api/applications`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to register application");
+  return data;
+}
+
+export async function updateApplication(token, id, payload) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update application");
+  return data;
+}
+
+export async function assignApplication(token, id, target) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/assign`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(target),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to assign application");
+  return data;
+}
+
+export async function blockApplication(token, id) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/block`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to block application");
+  return data;
+}
+
+export async function allowApplication(token, id) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/allow`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to allow application");
+  return data;
+}
+
+export async function deleteApplication(token, id) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete application");
+  return data;
+}
