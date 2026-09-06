@@ -17,6 +17,10 @@ import {
   blockApplication,
   allowApplication,
   deleteApplication,
+  createEnrollmentProfile,
+  getEnrollmentProfiles,
+  deleteEnrollmentProfile,
+  getEnrollmentHistory,
   assignDeviceToEmployee,
   unassignDevice,
   removeDevice,
@@ -2491,6 +2495,12 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
   const [newDeviceName, setNewDeviceName] = useState("");
   const [generatedUid, setGeneratedUid] = useState(null);
+  const [profiles, setProfiles] = useState([]);
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newProfilePolicyId, setNewProfilePolicyId] = useState("");
+  const [newProfileExpiry, setNewProfileExpiry] = useState(24);
 
   function load(searchOverride) {
     setLoading(true);
@@ -2503,15 +2513,37 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [organizationId, departmentId]);
+  function loadProfiles() {
+    getEnrollmentProfiles(token, organizationId).then(setProfiles).catch(() => {});
+  }
+
+  useEffect(() => { load(); loadProfiles(); }, [organizationId, departmentId]);
 
   async function handleGenerateToken(e) {
     e.preventDefault();
     try {
-      const data = await generateEnrollmentToken(token, newDeviceName);
+      const data = await generateEnrollmentToken(token, newDeviceName, selectedProfileId || null);
       setGeneratedUid(data.device.device_uid);
       setNewDeviceName("");
       load();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  async function handleCreateProfile(e) {
+    e.preventDefault();
+    if (!newProfileName.trim()) return;
+    try {
+      await createEnrollmentProfile(token, {
+        name: newProfileName.trim(),
+        organization_id: organizationId,
+        default_policy_id: newProfilePolicyId || null,
+        default_department_id: departmentId,
+        token_expiry_hours: newProfileExpiry,
+      });
+      setNewProfileName(""); setNewProfilePolicyId(""); setNewProfileExpiry(24); setShowProfileForm(false);
+      loadProfiles();
     } catch (err) {
       showToast(err.message, true);
     }
@@ -2544,8 +2576,28 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
             value={newDeviceName}
             onChange={(e) => setNewDeviceName(e.target.value)}
           />
+          <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
+            <option value="">No enrollment profile (24h token)</option>
+            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
           <button type="submit">+ Bulk Enroll</button>
+          <button type="button" className="ghost-dark" onClick={() => setShowProfileForm(!showProfileForm)}>
+            {showProfileForm ? "Cancel" : "+ New Profile"}
+          </button>
         </form>
+
+        {showProfileForm && (
+          <form onSubmit={handleCreateProfile} className="policy-form" style={{ marginTop: "0.8rem", borderTop: "1px solid var(--line)", paddingTop: "0.8rem" }}>
+            <input type="text" placeholder="Profile name, e.g. Warehouse Devices" value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} />
+            <select value={newProfilePolicyId} onChange={(e) => setNewProfilePolicyId(e.target.value)}>
+              <option value="">No default policy</option>
+              {policies.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <input type="number" placeholder="Token expiry (hours)" value={newProfileExpiry} onChange={(e) => setNewProfileExpiry(e.target.value)} style={{ width: "140px" }} />
+            <button type="submit">Save Profile</button>
+          </form>
+        )}
+
         {generatedUid && (
           <div className="generated-code">
             <p>Enrollment code: <span className="mono">{generatedUid}</span><br />Scan this QR in the CyberNest Agent app, or enter the code manually.</p>

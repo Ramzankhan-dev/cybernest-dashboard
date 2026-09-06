@@ -136,11 +136,11 @@ export async function removeDevice(token, deviceUid) {
   return data;
 }
 
-export async function generateEnrollmentToken(token, employeeName) {
+export async function generateEnrollmentToken(token, employeeName, enrollmentProfileId = null) {
   const res = await fetch(`${BASE_URL}/api/devices/generate-token`, {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ employee_name: employeeName }),
+    body: JSON.stringify({ employee_name: employeeName, enrollment_profile_id: enrollmentProfileId }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to generate token");
@@ -679,5 +679,40 @@ export async function deleteApplication(token, id) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to delete application");
+  return data;
+}
+
+export async function createEnrollmentProfile(token, payload) {
+  const res = await fetch(`${BASE_URL}/api/enrollment/profiles`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to create profile");
+  return data;
+}
+
+export async function getEnrollmentProfiles(token, organizationId) {
+  const res = await fetch(`${BASE_URL}/api/enrollment/profiles?organization_id=${organizationId}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load profiles");
+  return data;
+}
+
+export async function deleteEnrollmentProfile(token, id) {
+  const res = await fetch(`${BASE_URL}/api/enrollment/profiles/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete profile");
+  return data;
+}
+
+export async function getEnrollmentHistory(token, organizationId) {
+  const res = await fetch(`${BASE_URL}/api/enrollment/history?organization_id=${organizationId}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load enrollment history");
   return data;
 }
