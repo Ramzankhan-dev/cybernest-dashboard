@@ -38,6 +38,7 @@ import {
   deletePolicy,
   unassignPolicyFromAll,
   unassignDevicePolicy,
+  getCurrentPolicy,
   assignPolicyToDepartment,
   assignPolicy,
   getInstalledApps,
@@ -839,6 +840,18 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
   const [sending, setSending] = useState(null);
   const [appPackage, setAppPackage] = useState("");
   const [selectedPolicy, setSelectedPolicy] = useState("");
+  const [currentPolicy, setCurrentPolicy] = useState(null);
+  const [loadingCurrentPolicy, setLoadingCurrentPolicy] = useState(false);
+
+  function loadCurrentPolicy() {
+    setLoadingCurrentPolicy(true);
+    getCurrentPolicy(token, device.device_uid)
+      .then((data) => setCurrentPolicy(data.policy))
+      .catch(() => setCurrentPolicy(null))
+      .finally(() => setLoadingCurrentPolicy(false));
+  }
+
+  useEffect(() => { loadCurrentPolicy(); }, [device.device_uid]);
 
   async function handleCommand(commandType, packageName = null) {
     setSending(commandType);
@@ -874,6 +887,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
     try {
       const data = await assignPolicy(token, selectedPolicy, device.device_uid);
       onCommandSent(`Policy applied (${data.commands_sent.length} rules)`);
+      loadCurrentPolicy();
     } catch (err) {
       onCommandSent(`Failed: ${err.message}`, true);
     } finally {
@@ -887,6 +901,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
     try {
       const data = await unassignDevicePolicy(token, device.device_uid);
       onCommandSent(data.message);
+      loadCurrentPolicy();
     } catch (err) {
       onCommandSent(`Failed: ${err.message}`, true);
     } finally {
@@ -948,6 +963,29 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
 
       {tab === "policy" && (
         <div>
+          <div className="dash-header-row" style={{ marginBottom: "0.8rem" }}>
+            <div className="app-block-label" style={{ margin: 0 }}>Currently assigned policy:</div>
+            <button className="ghost-dark" onClick={loadCurrentPolicy} disabled={loadingCurrentPolicy}>
+              {loadingCurrentPolicy ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+          <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
+            {loadingCurrentPolicy && <p style={{ margin: 0 }}>Loading...</p>}
+            {!loadingCurrentPolicy && !currentPolicy && <p className="empty-state" style={{ margin: 0 }}>No policy currently assigned to this device.</p>}
+            {!loadingCurrentPolicy && currentPolicy && (
+              <div>
+                <strong>{currentPolicy.name}</strong>
+                <span className="policy-flags" style={{ marginLeft: "0.5rem" }}>
+                  {currentPolicy.camera_blocked && "Camera "}
+                  {currentPolicy.bluetooth_blocked && "Bluetooth "}
+                  {currentPolicy.wifi_restricted && "Wi-Fi "}
+                  {currentPolicy.usb_transfer_blocked && "USB "}
+                  {currentPolicy.kiosk_mode && "Kiosk "}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Apply a saved policy:</div>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
             <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>

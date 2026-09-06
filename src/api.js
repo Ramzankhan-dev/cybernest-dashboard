@@ -736,3 +736,10 @@ export async function unassignDevicePolicy(token, deviceUid) {
   if (!res.ok) throw new Error(data.error || "Failed to unassign policy");
   return data;
 }
+
+export async function getCurrentPolicy(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/current-policy`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load current policy");
+  return data;
+}
