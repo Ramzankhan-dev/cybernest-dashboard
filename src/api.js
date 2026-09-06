@@ -780,3 +780,19 @@ export async function getCurrentPolicy(token, deviceUid) {
   if (!res.ok) throw new Error(data.error || "Failed to load current policy");
   return data;
 }
+
+export async function getAuditLogs(token, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE_URL}/api/audit-logs?${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load audit logs");
+  return data;
+}
+
+export async function getAuditLogStats(token, organizationId = null) {
+  const qs = organizationId ? `?organization_id=${organizationId}` : "";
+  const res = await fetch(`${BASE_URL}/api/audit-logs/stats${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load audit log stats");
+  return data;
+}
