@@ -294,6 +294,7 @@ function DeviceRow({ device, onViewDetails, token, onRemoved }) {
 
 function PolicyAssignModal({ policy, token, onClose, showToast }) {
   const [mode, setMode] = useState("device"); // device | department
+  const [devices, setDevices] = useState([]);
   const [deviceUid, setDeviceUid] = useState("");
   const [departments, setDepartments] = useState([]);
   const [departmentId, setDepartmentId] = useState("");
@@ -302,6 +303,7 @@ function PolicyAssignModal({ policy, token, onClose, showToast }) {
 
   useEffect(() => {
     getDepartments(token, { organization_id: policy.organization_id, limit: 100 }).then((d) => setDepartments(d.departments)).catch(() => {});
+    getDevices(token, { organization_id: policy.organization_id, limit: 200 }).then((d) => setDevices(d.devices)).catch(() => {});
   }, []);
 
   async function handleSubmit(e) {
@@ -337,8 +339,15 @@ function PolicyAssignModal({ policy, token, onClose, showToast }) {
         <form onSubmit={handleSubmit} className="modal-form">
           {mode === "device" ? (
             <>
-              <label>Device UID</label>
-              <input type="text" value={deviceUid} onChange={(e) => setDeviceUid(e.target.value)} placeholder="Paste device_uid" />
+              <label>Device</label>
+              <select value={deviceUid} onChange={(e) => setDeviceUid(e.target.value)}>
+                <option value="">Select device…</option>
+                {devices.map((d) => (
+                  <option key={d.id} value={d.device_uid}>
+                    {d.model || d.device_uid} — {d.assigned_employee_name || d.employee_name || "Unassigned"}
+                  </option>
+                ))}
+              </select>
             </>
           ) : (
             <>
@@ -1975,6 +1984,7 @@ function EmployeesView({ token, organizationId, onBack }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [deviceInputs, setDeviceInputs] = useState({});
+  const [availableDevices, setAvailableDevices] = useState([]);
   const [acting, setActing] = useState(null);
 
   function load() {
@@ -1988,6 +1998,10 @@ function EmployeesView({ token, organizationId, onBack }) {
     getEmployees(token, params).then((data) => { setEmployees(data.employees); setTotal(data.total); }).catch((err) => setError(err.message));
     const deptParams = organizationId ? { organization_id: organizationId, limit: 100 } : {};
     getDepartments(token, deptParams).then((data) => setDepartments(data.departments)).catch(() => {});
+    // Devices with no employee attached yet — the only ones that make sense to assign
+    getDevices(token, { organization_id: organizationId, department_id: "unassigned", limit: 200 })
+      .then((data) => setAvailableDevices(data.devices))
+      .catch(() => {});
   }
 
   useEffect(() => { load(); }, [page, deptFilter, statusFilter, roleFilter, sort, organizationId]);
@@ -2176,14 +2190,17 @@ function EmployeesView({ token, organizationId, onBack }) {
                 <td className="actions">
                   {!e.device_uid && (
                     <>
-                      <input
-                        type="text"
-                        placeholder="Device UID"
-                        style={{ width: "100px" }}
+                      <select
+                        style={{ width: "150px" }}
                         value={deviceInputs[e.id] || ""}
                         onChange={(ev) => setDeviceInputs({ ...deviceInputs, [e.id]: ev.target.value })}
-                      />
-                      <button disabled={acting !== null} onClick={() => handleAssignDevice(e.id)}>Assign</button>
+                      >
+                        <option value="">Select device…</option>
+                        {availableDevices.map((d) => (
+                          <option key={d.id} value={d.device_uid}>{d.model || d.device_uid} {d.imei ? `(${d.imei.slice(-4)})` : ""}</option>
+                        ))}
+                      </select>
+                      <button disabled={acting !== null || !deviceInputs[e.id]} onClick={() => handleAssignDevice(e.id)}>Assign</button>
                     </>
                   )}
                   <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
@@ -2431,6 +2448,7 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
       </div>
       <table style={{ marginTop: "0.6rem", marginBottom: "0.8rem" }}>
         <tbody>
+          <tr><td>UID</td><td className="mono" style={{ textAlign: "right", fontSize: "0.72rem" }}>{device.device_uid}</td></tr>
           <tr><td>IMEI</td><td className="mono" style={{ textAlign: "right" }}>{device.imei || "—"}</td></tr>
           <tr><td>Android</td><td style={{ textAlign: "right" }}>{device.android_version || "—"}</td></tr>
           <tr><td>Battery</td><td style={{ textAlign: "right" }}>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
