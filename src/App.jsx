@@ -39,6 +39,7 @@ import {
   unassignPolicyFromAll,
   unassignDevicePolicy,
   getCurrentPolicy,
+  getPolicyHistory,
   assignPolicyToDepartment,
   assignPolicy,
   getInstalledApps,
@@ -853,6 +854,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
   const [selectedPolicy, setSelectedPolicy] = useState("");
   const [currentPolicy, setCurrentPolicy] = useState(null);
   const [loadingCurrentPolicy, setLoadingCurrentPolicy] = useState(false);
+  const [policyHistory, setPolicyHistory] = useState([]);
 
   function loadCurrentPolicy() {
     setLoadingCurrentPolicy(true);
@@ -860,6 +862,9 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
       .then((data) => setCurrentPolicy(data.policy))
       .catch(() => setCurrentPolicy(null))
       .finally(() => setLoadingCurrentPolicy(false));
+    getPolicyHistory(token, device.device_uid)
+      .then((data) => setPolicyHistory(data.history || []))
+      .catch(() => setPolicyHistory([]));
   }
 
   useEffect(() => { loadCurrentPolicy(); }, [device.device_uid]);
@@ -996,6 +1001,29 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
               </div>
             )}
           </div>
+
+          {policyHistory.length > 1 && (
+            <>
+              <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Assignment history (all policies ever applied to this device):</div>
+              <ul className="policy-list" style={{ marginBottom: "1.2rem" }}>
+                {policyHistory.map((p, i) => (
+                  <li key={`${p.id}-${p.assigned_at}`}>
+                    <span>
+                      <strong>{p.name}</strong>{i === 0 && <span style={{ color: "var(--teal)", marginLeft: "0.4rem" }}>(active)</span>}
+                      <span className="policy-flags" style={{ marginLeft: "0.5rem" }}>
+                        {p.camera_blocked && "Camera "}
+                        {p.bluetooth_blocked && "Bluetooth "}
+                        {p.wifi_restricted && "Wi-Fi "}
+                        {p.usb_transfer_blocked && "USB "}
+                        {p.kiosk_mode && "Kiosk "}
+                      </span>
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{new Date(p.assigned_at).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Apply a saved policy:</div>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>

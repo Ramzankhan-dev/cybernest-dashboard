@@ -792,6 +792,13 @@ export async function getCurrentPolicy(token, deviceUid) {
   return data;
 }
 
+export async function getPolicyHistory(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy-history`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load policy history");
+  return data;
+}
+
 export async function getAuditLogs(token, params = {}) {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${BASE_URL}/api/audit-logs?${qs}`, { headers: authHeaders(token) });
