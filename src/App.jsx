@@ -17,6 +17,10 @@ import {
   blockApplication,
   allowApplication,
   deleteApplication,
+  uploadApkPackage,
+  getApkPackages,
+  deleteApkPackage,
+  installApkPackage,
   createEnrollmentProfile,
   getEnrollmentProfiles,
   deleteEnrollmentProfile,
@@ -3734,6 +3738,134 @@ function ApplicationAssignModal({ app, token, organizationId, onClose, showToast
   );
 }
 
+function UploadApkModal({ token, organizationId, onClose, showToast }) {
+  const [appName, setAppName] = useState("");
+  const [packageName, setPackageName] = useState("");
+  const [versionName, setVersionName] = useState("");
+  const [file, setFile] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function pickFile(f) {
+    if (!f) return;
+    setFile(f);
+    // Convenience: derive a default app name from the filename if the
+    // admin hasn't typed one yet.
+    if (!appName) setAppName(f.name.replace(/\.apk$/i, ""));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!file) { setError("Choose an APK file first"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await uploadApkPackage(token, { appName, packageName, versionName, file });
+      showToast("APK uploaded");
+      onClose(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={() => onClose(false)}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Upload APK</h3>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); pickFile(e.dataTransfer.files[0]); }}
+            onClick={() => document.getElementById("apk-file-input").click()}
+            style={{
+              border: `2px dashed ${dragOver ? "var(--teal)" : "var(--border)"}`,
+              borderRadius: "8px", padding: "1.2rem", textAlign: "center",
+              cursor: "pointer", marginBottom: "0.9rem", fontSize: "0.82rem",
+              color: "var(--text-muted)",
+            }}
+          >
+            {file ? `📦 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : "Drag & drop an .apk here, or click to browse"}
+            <input
+              id="apk-file-input"
+              type="file"
+              accept=".apk"
+              style={{ display: "none" }}
+              onChange={(e) => pickFile(e.target.files[0])}
+            />
+          </div>
+
+          <label>App Name *</label>
+          <input value={appName} onChange={(e) => setAppName(e.target.value)} required />
+          <label>Package Name *</label>
+          <input value={packageName} onChange={(e) => setPackageName(e.target.value)} placeholder="com.example.app" required />
+          <label>Version (optional)</label>
+          <input value={versionName} onChange={(e) => setVersionName(e.target.value)} placeholder="1.0.0" />
+
+          {error && <p className="error-text">{error}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Uploading..." : "Upload"}</button>
+            <button type="button" className="ghost-dark" onClick={() => onClose(false)}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function InstallApkModal({ pkg, token, organizationId, onClose, showToast }) {
+  const [devices, setDevices] = useState([]);
+  const [deviceUid, setDeviceUid] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getDevices(token, { organization_id: organizationId, limit: 200 }).then((d) => setDevices(d.devices)).catch(() => {});
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!deviceUid) { setError("Select a device"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await installApkPackage(token, pkg.id, deviceUid);
+      showToast(`Install pushed to ${deviceUid}`);
+      onClose(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={() => onClose(false)}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Install "{pkg.app_name}"</h3>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
+          Pushes a silent install command to the device — no user confirmation needed, since it's already Device Owner managed.
+        </p>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <label>Device</label>
+          <select value={deviceUid} onChange={(e) => setDeviceUid(e.target.value)}>
+            <option value="">Select device…</option>
+            {devices.map((d) => <option key={d.id} value={d.device_uid}>{d.model || d.device_uid}</option>)}
+          </select>
+          {error && <p className="error-text">{error}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={saving}>{saving ? "Sending..." : "Push Install"}</button>
+            <button type="button" className="ghost-dark" onClick={() => onClose(false)}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ApplicationsView({ token, organizationId, showToast }) {
   const [apps, setApps] = useState([]);
   const [stats, setStats] = useState(null);
@@ -3747,6 +3879,25 @@ function ApplicationsView({ token, organizationId, showToast }) {
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
   const [assigningApp, setAssigningApp] = useState(null);
+  const [apkPackages, setApkPackages] = useState([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [installingPkg, setInstallingPkg] = useState(null);
+
+  function loadApkPackages() {
+    getApkPackages(token, organizationId).then(setApkPackages).catch(() => {});
+  }
+
+  useEffect(() => { loadApkPackages(); }, [organizationId]);
+
+  async function handleDeletePkg(pkg) {
+    if (!window.confirm(`Delete uploaded APK "${pkg.app_name}"?`)) return;
+    try {
+      await deleteApkPackage(token, pkg.id);
+      loadApkPackages();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
 
   function load() {
     setLoading(true);
@@ -3867,6 +4018,38 @@ function ApplicationsView({ token, organizationId, showToast }) {
         </div>
       )}
 
+      <div className="dash-header-row" style={{ marginTop: "2rem" }}>
+        <h2 style={{ border: "none", margin: 0 }}>Direct APK Install</h2>
+        <button onClick={() => setShowUploadModal(true)}>+ Upload APK</button>
+      </div>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.3rem 0 1rem" }}>
+        Upload an APK once, then push a silent install to any enrolled device — no Play Store or Managed Google Play needed.
+      </p>
+      {apkPackages.length === 0 ? (
+        <p className="empty-state">No APKs uploaded yet.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>App</th><th>Package</th><th>Version</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {apkPackages.map((pkg) => (
+              <tr key={pkg.id}>
+                <td>{pkg.app_name}</td>
+                <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{pkg.package_name}</td>
+                <td>{pkg.version_name || "—"}</td>
+                <td>{(pkg.file_size_bytes / 1024 / 1024).toFixed(1)} MB</td>
+                <td>{new Date(pkg.uploaded_at).toLocaleDateString()}</td>
+                <td>
+                  <button onClick={() => setInstallingPkg(pkg)}>Install to Device</button>
+                  <button className="danger" onClick={() => handleDeletePkg(pkg)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       {showFormModal && (
         <ApplicationFormModal
           initial={editingApp}
@@ -3884,6 +4067,25 @@ function ApplicationsView({ token, organizationId, showToast }) {
           organizationId={organizationId}
           showToast={showToast}
           onClose={(refresh) => { setAssigningApp(null); if (refresh) load(); }}
+        />
+      )}
+
+      {showUploadModal && (
+        <UploadApkModal
+          token={token}
+          organizationId={organizationId}
+          showToast={showToast}
+          onClose={(refresh) => { setShowUploadModal(false); if (refresh) loadApkPackages(); }}
+        />
+      )}
+
+      {installingPkg && (
+        <InstallApkModal
+          pkg={installingPkg}
+          token={token}
+          organizationId={organizationId}
+          showToast={showToast}
+          onClose={(refresh) => { setInstallingPkg(null); if (refresh) loadApkPackages(); }}
         />
       )}
     </section>

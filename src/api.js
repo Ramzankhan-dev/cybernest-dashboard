@@ -730,6 +730,56 @@ export async function deleteApplication(token, id) {
   return data;
 }
 
+// ===================== Direct APK Install =====================
+
+export async function uploadApkPackage(token, { appName, packageName, versionName, file }) {
+  const formData = new FormData();
+  formData.append("app_name", appName);
+  formData.append("package_name", packageName);
+  if (versionName) formData.append("version_name", versionName);
+  formData.append("apk", file);
+
+  // No Content-Type here on purpose — the browser sets
+  // multipart/form-data with the correct boundary itself.
+  const res = await fetch(`${BASE_URL}/api/applications/packages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to upload APK");
+  return data;
+}
+
+export async function getApkPackages(token, organizationId) {
+  const qs = organizationId ? `?organization_id=${organizationId}` : "";
+  const res = await fetch(`${BASE_URL}/api/applications/packages${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load APK packages");
+  return data;
+}
+
+export async function deleteApkPackage(token, id) {
+  const res = await fetch(`${BASE_URL}/api/applications/packages/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete package");
+  return data;
+}
+
+export async function installApkPackage(token, id, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/applications/packages/${id}/install`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ device_uid: deviceUid }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to push install");
+  return data;
+}
+
 export async function createEnrollmentProfile(token, payload) {
   const res = await fetch(`${BASE_URL}/api/enrollment/profiles`, {
     method: "POST",
