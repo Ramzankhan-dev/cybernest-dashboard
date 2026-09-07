@@ -803,6 +803,14 @@ export async function getCommandStatus(token, commandId) {
   return data;
 }
 
+export async function getInstallHistory(token, organizationId) {
+  const qs = organizationId ? `?organization_id=${organizationId}` : "";
+  const res = await fetch(`${BASE_URL}/api/applications/packages/installs${qs}`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load install history");
+  return data;
+}
+
 export async function createEnrollmentProfile(token, payload) {
   const res = await fetch(`${BASE_URL}/api/enrollment/profiles`, {
     method: "POST",

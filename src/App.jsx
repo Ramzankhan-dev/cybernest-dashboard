@@ -22,6 +22,7 @@ import {
   deleteApkPackage,
   installApkPackage,
   getCommandStatus,
+  getInstallHistory,
   createEnrollmentProfile,
   getEnrollmentProfiles,
   deleteEnrollmentProfile,
@@ -3941,12 +3942,16 @@ function ApplicationsView({ token, organizationId, showToast }) {
   const [apkPackages, setApkPackages] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [installingPkg, setInstallingPkg] = useState(null);
+  const [installHistory, setInstallHistory] = useState([]);
 
   function loadApkPackages() {
     getApkPackages(token, organizationId).then(setApkPackages).catch(() => {});
   }
+  function loadInstallHistory() {
+    getInstallHistory(token, organizationId).then(setInstallHistory).catch(() => {});
+  }
 
-  useEffect(() => { loadApkPackages(); }, [organizationId]);
+  useEffect(() => { loadApkPackages(); loadInstallHistory(); }, [organizationId]);
 
   async function handleDeletePkg(pkg) {
     if (!window.confirm(`Delete uploaded APK "${pkg.app_name}"?`)) return;
@@ -4109,6 +4114,30 @@ function ApplicationsView({ token, organizationId, showToast }) {
         </table>
       )}
 
+      <div className="dash-header-row" style={{ marginTop: "2rem" }}>
+        <h2 style={{ border: "none", margin: 0 }}>Install History</h2>
+        <button className="ghost-dark" onClick={loadInstallHistory}>Refresh</button>
+      </div>
+      {installHistory.length === 0 ? (
+        <p className="empty-state">No installs recorded yet.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>App</th><th>Device</th><th>Installed By</th><th>When</th></tr>
+          </thead>
+          <tbody>
+            {installHistory.map((h) => (
+              <tr key={h.id}>
+                <td>{h.app_name}{h.version_name ? ` (v${h.version_name})` : ""}</td>
+                <td>{h.device_model || h.device_uid}</td>
+                <td>{h.installed_by_name || "—"}</td>
+                <td>{new Date(h.installed_at).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       {showFormModal && (
         <ApplicationFormModal
           initial={editingApp}
@@ -4144,7 +4173,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
           token={token}
           organizationId={organizationId}
           showToast={showToast}
-          onClose={(refresh) => { setInstallingPkg(null); if (refresh) loadApkPackages(); }}
+          onClose={(refresh) => { setInstallingPkg(null); if (refresh) { loadApkPackages(); loadInstallHistory(); } }}
         />
       )}
     </section>
