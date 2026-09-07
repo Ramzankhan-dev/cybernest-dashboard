@@ -732,23 +732,39 @@ export async function deleteApplication(token, id) {
 
 // ===================== Direct APK Install =====================
 
-export async function uploadApkPackage(token, { appName, packageName, versionName, file }) {
-  const formData = new FormData();
-  formData.append("app_name", appName);
-  formData.append("package_name", packageName);
-  if (versionName) formData.append("version_name", versionName);
-  formData.append("apk", file);
+// Uses XMLHttpRequest (not fetch) specifically because fetch has no
+// upload-progress API — for a large APK over a slow uplink, that made
+// the modal look frozen with zero feedback even when it was working.
+export function uploadApkPackage(token, { appName, packageName, versionName, file }, onProgress) {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("app_name", appName);
+    formData.append("package_name", packageName);
+    if (versionName) formData.append("version_name", versionName);
+    formData.append("apk", file);
 
-  // No Content-Type here on purpose — the browser sets
-  // multipart/form-data with the correct boundary itself.
-  const res = await fetch(`${BASE_URL}/api/applications/packages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${BASE_URL}/api/applications/packages`);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+        else reject(new Error(data.error || "Failed to upload APK"));
+      } catch (err) {
+        reject(new Error("Failed to upload APK"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.ontimeout = () => reject(new Error("Upload timed out"));
+    xhr.timeout = 10 * 60 * 1000; // 10 minutes — generous for a slow uplink
+
+    xhr.send(formData);
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to upload APK");
-  return data;
 }
 
 export async function getApkPackages(token, organizationId) {

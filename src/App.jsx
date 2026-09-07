@@ -3745,6 +3745,7 @@ function UploadApkModal({ token, organizationId, onClose, showToast }) {
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
 
   function pickFile(f) {
@@ -3759,9 +3760,10 @@ function UploadApkModal({ token, organizationId, onClose, showToast }) {
     e.preventDefault();
     if (!file) { setError("Choose an APK file first"); return; }
     setSaving(true);
+    setProgress(0);
     setError("");
     try {
-      await uploadApkPackage(token, { appName, packageName, versionName, file });
+      await uploadApkPackage(token, { appName, packageName, versionName, file }, setProgress);
       showToast("APK uploaded");
       onClose(true);
     } catch (err) {
@@ -3806,8 +3808,18 @@ function UploadApkModal({ token, organizationId, onClose, showToast }) {
           <input value={versionName} onChange={(e) => setVersionName(e.target.value)} placeholder="1.0.0" />
 
           {error && <p className="error-text">{error}</p>}
+          {saving && (
+            <div style={{ margin: "0.8rem 0" }}>
+              <div style={{ background: "var(--border)", borderRadius: "4px", height: "8px", overflow: "hidden" }}>
+                <div style={{ background: "var(--teal)", height: "100%", width: `${progress}%`, transition: "width 0.2s" }} />
+              </div>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0.3rem 0 0" }}>
+                {progress < 100 ? `Uploading… ${progress}%` : "Processing on server — this can take a moment for large files…"}
+              </p>
+            </div>
+          )}
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <button type="submit" disabled={saving}>{saving ? "Uploading..." : "Upload"}</button>
+            <button type="submit" disabled={saving}>{saving ? `Uploading... ${progress}%` : "Upload"}</button>
             <button type="button" className="ghost-dark" onClick={() => onClose(false)}>Cancel</button>
           </div>
         </form>
