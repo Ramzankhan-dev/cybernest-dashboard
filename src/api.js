@@ -796,6 +796,13 @@ export async function installApkPackage(token, id, deviceUid) {
   return data;
 }
 
+export async function getCommandStatus(token, commandId) {
+  const res = await fetch(`${BASE_URL}/api/commands/${commandId}/status`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to check install status");
+  return data;
+}
+
 export async function createEnrollmentProfile(token, payload) {
   const res = await fetch(`${BASE_URL}/api/enrollment/profiles`, {
     method: "POST",
