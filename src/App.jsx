@@ -971,7 +971,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             </tbody>
           </table>
           <div className="quick-actions">
-            <button onClick={() => handleCommand("lock")} disabled={sending !== null}>Lock</button>
+            <button onClick={() => handleCommand(device.is_locked ? "unlock" : "lock")} disabled={sending !== null}>{device.is_locked ? "Unlock" : "Lock"}</button>
             <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
             <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
             <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
@@ -1078,7 +1078,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             <button onClick={() => handleCommand("unblock_camera")} disabled={sending !== null}>Unblock camera</button>
             <button onClick={() => handleCommand("block_bluetooth")} disabled={sending !== null}>Block Bluetooth</button>
             <button onClick={() => handleCommand("unblock_bluetooth")} disabled={sending !== null}>Unblock Bluetooth</button>
-            <button onClick={() => handleCommand("lock")} disabled={sending !== null}>Lock</button>
+            <button onClick={() => handleCommand(device.is_locked ? "unlock" : "lock")} disabled={sending !== null}>{device.is_locked ? "Unlock" : "Lock"}</button>
             <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
             <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
             <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
@@ -2969,8 +2969,8 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
       </table>
       <div className="actions">
         <button onClick={() => onView(device.device_uid)}>View</button>
-        <button className="danger" disabled={sending !== null} onClick={() => quickCommand("lock")}>
-          {sending === "lock" ? "..." : "Lock"}
+        <button className={device.is_locked ? "" : "danger"} disabled={sending !== null} onClick={() => quickCommand(device.is_locked ? "unlock" : "lock")}>
+          {sending === (device.is_locked ? "unlock" : "lock") ? "..." : (device.is_locked ? "Unlock" : "Lock")}
         </button>
         <button disabled={sending !== null} onClick={() => quickCommand("sync")}>
           {sending === "sync" ? "..." : "Sync"}
