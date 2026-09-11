@@ -852,6 +852,11 @@ function LocationPanel({ device, token, onCommandSent }) {
         <input value={geoLng} onChange={(e) => setGeoLng(e.target.value)} placeholder="e.g. 73.0479" />
         <label>Radius (meters)</label>
         <input value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} placeholder="e.g. 200" type="number" />
+        {geoRadius && Number(geoRadius) < 100 && (
+          <p style={{ fontSize: "0.74rem", color: "var(--amber)", margin: "0.3rem 0 0" }}>
+            ⚠️ Android's geofencing isn't reliable below ~100m — GPS/Wi-Fi location accuracy alone can be off by 20-50m, so smaller radii often won't trigger.
+          </p>
+        )}
         {geoError && <p className="error-text">{geoError}</p>}
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.8rem" }}>
           <button type="submit" disabled={savingGeo}>{savingGeo ? "Saving..." : "Save Geofence"}</button>
