@@ -811,6 +811,36 @@ export async function getInstallHistory(token, organizationId) {
   return data;
 }
 
+// ===================== Location & Geofencing =====================
+
+export async function setGeofence(token, deviceUid, { lat, lng, radiusMeters }) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/geofence`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ lat, lng, radius_meters: radiusMeters }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to save geofence");
+  return data;
+}
+
+export async function removeGeofence(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/geofence`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to remove geofence");
+  return data;
+}
+
+export async function getGeofenceAlerts(token, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/geofence-alerts`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load geofence alerts");
+  return data;
+}
+
 export async function createEnrollmentProfile(token, payload) {
   const res = await fetch(`${BASE_URL}/api/enrollment/profiles`, {
     method: "POST",
