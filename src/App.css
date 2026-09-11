@@ -759,3 +759,81 @@ button.ghost-dark:hover { border-color: var(--teal); color: var(--teal); }
   color: var(--text);
   margin: 0;
 }
+
+/* ==================================================================
+   Responsive — tablet and phone
+   Two breakpoints: 900px (tablet — sidebar stays but content tightens,
+   grids reflow) and 640px (phone — sidebar collapses to a horizontal
+   top bar, tables/tabs scroll horizontally instead of overflowing the
+   page, modals fit the viewport width).
+   ================================================================== */
+
+@media (max-width: 900px) {
+  main { padding: 1.2rem; }
+  .top-header { padding: 0.7rem 1rem; flex-wrap: wrap; }
+  .global-search { max-width: none; }
+  .search-results { left: 1rem; right: 1rem; width: auto; }
+
+  .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .report-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+
+  .policy-form, .enroll-form { flex-wrap: wrap; }
+  .policy-form input, .policy-form select { min-width: 160px; }
+}
+
+@media (max-width: 640px) {
+  .app-shell { flex-direction: column; }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.6rem;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .sidebar-logo { margin: 0 0.8rem 0 0.3rem; white-space: nowrap; }
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 0.15rem;
+    overflow-x: auto;
+  }
+  .sidebar-nav button { white-space: nowrap; padding: 0.5rem 0.6rem; font-size: 0.8rem; }
+
+  main { padding: 0.9rem; }
+  .top-header { padding: 0.6rem 0.8rem; gap: 0.6rem; }
+  .topbar-right { font-size: 0.8rem; gap: 0.6rem; flex-wrap: wrap; }
+
+  h2 { font-size: 0.92rem; }
+
+  .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 0.5rem; }
+  .kpi-card { padding: 0.6rem; }
+  .kpi-value { font-size: 1.25rem; }
+  .chart-grid, .report-grid { grid-template-columns: 1fr; }
+  .dash-header-row { flex-wrap: wrap; gap: 0.6rem; }
+
+  /* Tables don't reflow into cards — the columns stay intact but the
+     table itself scrolls horizontally within its own box, rather than
+     forcing the whole page wider (which was the original "only
+     vertical scroll works" complaint — the table was pushing main's
+     max-width out instead of scrolling on its own). */
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  thead, tbody, tr { display: table; width: 100%; table-layout: fixed; }
+
+  .tab-strip { overflow-x: auto; flex-wrap: nowrap; }
+  .tab-btn { white-space: nowrap; padding: 0.5rem 0.7rem; font-size: 0.8rem; }
+
+  .modal-overlay { padding: 1rem; align-items: flex-start; padding-top: 3rem; }
+  .modal-card { width: 100%; max-width: 420px; padding: 1.1rem; }
+
+  .quick-actions, .actions { gap: 0.35rem; }
+  .quick-actions button, .actions button { padding: 0.35rem 0.6rem; font-size: 0.76rem; }
+
+  .app-block-row input { width: 100%; margin-right: 0; margin-bottom: 0.4rem; }
+
+  .policy-checkbox-grid { grid-template-columns: 1fr; }
+
+  .login-card { width: 100%; max-width: 340px; padding: 1.8rem 1.4rem; }
+}

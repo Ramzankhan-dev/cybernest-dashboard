@@ -450,7 +450,7 @@ function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" style={{ width: "560px" }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card" style={{ width: "100%", maxWidth: "560px" }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ marginTop: 0 }}>{initial ? "Edit Policy" : "Create Policy"}</h3>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>Policy Name *</label>
