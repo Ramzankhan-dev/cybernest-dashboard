@@ -753,8 +753,17 @@ function LocationPanel({ device, token, onCommandSent }) {
 
   const [alerts, setAlerts] = useState([]);
 
-  useEffect(() => {
+  function loadAlerts() {
     getGeofenceAlerts(token, device.device_uid).then(setAlerts).catch(() => {});
+  }
+
+  useEffect(() => {
+    loadAlerts();
+    // Also catches alerts that arrive while this tab is open — polling
+    // every 15s is cheap and means the admin doesn't have to leave and
+    // re-enter the tab to see a fresh exit.
+    const interval = setInterval(loadAlerts, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleLocate() {
@@ -869,21 +878,24 @@ function LocationPanel({ device, token, onCommandSent }) {
         </p>
       )}
 
-      {alerts.length > 0 && (
-        <>
-          <h3 style={{ marginTop: "1.6rem" }}>Geofence Exit History</h3>
-          <table>
-            <thead><tr><th>When</th><th>Location</th></tr></thead>
-            <tbody>
-              {alerts.map((a, i) => (
-                <tr key={i}>
-                  <td>{new Date(a.triggered_at).toLocaleString()}</td>
-                  <td className="mono">{a.lat != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+      <div className="dash-header-row" style={{ marginTop: "1.6rem" }}>
+        <h3 style={{ margin: 0 }}>Geofence Exit History</h3>
+        <button className="ghost-dark" onClick={loadAlerts}>Refresh</button>
+      </div>
+      {alerts.length > 0 ? (
+        <table>
+          <thead><tr><th>When</th><th>Location</th></tr></thead>
+          <tbody>
+            {alerts.map((a, i) => (
+              <tr key={i}>
+                <td>{new Date(a.triggered_at).toLocaleString()}</td>
+                <td className="mono">{a.lat != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="empty-state">No exits recorded yet.</p>
       )}
     </div>
   );
