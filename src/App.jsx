@@ -3292,7 +3292,6 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   const [search, setSearch] = useState("");
   const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
   const [newDeviceName, setNewDeviceName] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
   const [generatedUid, setGeneratedUid] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [selectedProfileId, setSelectedProfileId] = useState("");
@@ -3321,11 +3320,6 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
 
   async function handleGenerateToken(e) {
     e.preventDefault();
-    if (!newDeviceName.trim()) {
-      setFieldErrors({ newDeviceName: "* Please fill this field" });
-      return;
-    }
-    setFieldErrors({});
     try {
       const data = await generateEnrollmentToken(token, newDeviceName, selectedProfileId || null, departmentId || null);
       setGeneratedUid(data.device.device_uid);
@@ -3376,20 +3370,13 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
 
       {canCreateDevices && (
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-          <form onSubmit={handleGenerateToken} className="enroll-form" noValidate>
-            <div className="field-group">
-              <input
-                type="text"
-                placeholder="Employee name"
-                value={newDeviceName}
-                className={fieldErrors.newDeviceName ? "input-error" : ""}
-                onChange={(e) => {
-                  setNewDeviceName(e.target.value);
-                  if (fieldErrors.newDeviceName) setFieldErrors({});
-                }}
-              />
-              {fieldErrors.newDeviceName && <p className="field-error">{fieldErrors.newDeviceName}</p>}
-            </div>
+          <form onSubmit={handleGenerateToken} className="enroll-form">
+            <input
+              type="text"
+              placeholder="Employee name (optional)"
+              value={newDeviceName}
+              onChange={(e) => setNewDeviceName(e.target.value)}
+            />
             <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
               <option value="">No enrollment profile (24h token)</option>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
