@@ -1691,7 +1691,14 @@ function ProfileView({ token, user }) {
   );
 }
 
-function NotificationCenterView({ token, devices, organizationId }) {
+function NotificationCenterView({ token, devices, organizationId, role }) {
+  // Point 6C: a Department Manager can't pick a department to broadcast to —
+  // there's only ever their own, so the "Select Department" dropdown is
+  // removed for them and every broadcast (the "Everyone" option) is
+  // auto-scoped server-side to their own department. Per-device targeting
+  // stays available since `devices` here is already backend-scoped to their
+  // department. OrgAdmin/SuperAdmin keep full department + device targeting.
+  const isDepartmentManager = role === "DepartmentManager";
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [notifType, setNotifType] = useState("Custom Message");
@@ -1721,7 +1728,11 @@ function NotificationCenterView({ token, devices, organizationId }) {
 
   useEffect(() => {
     load();
-    getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {});
+    // Not needed (or shown) for a Department Manager — they never see the
+    // org's other departments here.
+    if (!isDepartmentManager) {
+      getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {});
+    }
   }, [page, statusFilter]);
 
   function targetPayload() {
@@ -1828,12 +1839,14 @@ function NotificationCenterView({ token, devices, organizationId }) {
               <option value="Critical">Critical priority</option>
             </select>
             <select value={target} onChange={(e) => setTarget(e.target.value)}>
-              <option value="">Everyone</option>
-              <optgroup label="Departments">
-                {departments.map((d) => (
-                  <option key={`dept-${d.id}`} value={`dept:${d.id}`}>{d.name}</option>
-                ))}
-              </optgroup>
+              <option value="">{isDepartmentManager ? "Everyone in your department" : "Everyone"}</option>
+              {!isDepartmentManager && (
+                <optgroup label="Departments">
+                  {departments.map((d) => (
+                    <option key={`dept-${d.id}`} value={`dept:${d.id}`}>{d.name}</option>
+                  ))}
+                </optgroup>
+              )}
               <optgroup label="Devices">
                 {devices.map((d) => (
                   <option key={`device-${d.id}`} value={`device:${d.device_uid}`}>{d.employee_name || d.device_uid}</option>
@@ -3523,7 +3536,13 @@ function DevicesOrgCardsView({ token, policies, showToast }) {
   );
 }
 
-function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
+function CommandCenterView({ token, organizationId, isSuperAdmin, role, showToast }) {
+  // Point 6C: a Department Manager only ever targets their own department's
+  // devices — there's nothing for them to pick, so the department filter
+  // (and the org-wide department list behind it) is hidden entirely rather
+  // than just defaulting to their department. OrgAdmin/SuperAdmin keep full
+  // department/org targeting exactly as before.
+  const isDepartmentManager = role === "DepartmentManager";
   const [tab, setTab] = useState("pending");
   const [commands, setCommands] = useState([]);
   const [total, setTotal] = useState(0);
@@ -3563,15 +3582,20 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
     }
   }, [isSuperAdmin]);
 
-  // Departments for whichever org is currently selected
+  // Departments for whichever org is currently selected — not needed (or
+  // shown) for a Department Manager, who never sees other departments here.
   useEffect(() => {
     const orgToUse = isSuperAdmin ? orgFilter : organizationId;
-    if (!orgToUse) { setDepartments([]); return; }
+    if (!orgToUse || isDepartmentManager) { setDepartments([]); return; }
     getDepartments(token, { organization_id: orgToUse, limit: 100 }).then((d) => setDepartments(d.departments)).catch(() => {});
     setDeptFilter("all");
-  }, [orgFilter, organizationId, isSuperAdmin]);
+  }, [orgFilter, organizationId, isSuperAdmin, isDepartmentManager]);
 
-  // Devices for the selected org + department ("all" = every device in that org)
+  // Devices for the selected org + department ("all" = every device in that
+  // org). For a Department Manager, deptFilter never leaves "all" (the
+  // filter is hidden) — the backend itself still scopes GET /devices down
+  // to their own department, so the list below always ends up showing only
+  // their own department's devices, whatever "all" resolves to here.
   useEffect(() => {
     const orgToUse = isSuperAdmin ? orgFilter : organizationId;
     if (!orgToUse) { setDevices([]); return; }
@@ -3659,12 +3683,16 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
                 {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
             )}
-            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} disabled={isSuperAdmin && !orgFilter}>
-              <option value="all">All Devices</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            {!isDepartmentManager && (
+              <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} disabled={isSuperAdmin && !orgFilter}>
+                <option value="all">All Devices</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            )}
           </div>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>Select device(s):</p>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>
+            {isDepartmentManager ? "Select device(s) — your department:" : "Select device(s):"}
+          </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.8rem", maxHeight: "120px", overflowY: "auto" }}>
             {devices.length === 0 && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No devices to show — pick an organization/department above.</p>}
             {devices.map((d) => (
@@ -4781,13 +4809,13 @@ function Dashboard({ token, user, onLogout }) {
           ? <EmployeesOrgCardsView token={token} />
           : <EmployeesView token={token} organizationId={user.organization_id} user={user} />)}
         {page === "activity" && <AuditLogsView token={token} organizationId={user.organization_id} />}
-        {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
+        {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} role={user.role} showToast={showToast} />}
         {page === "compliance" && <ComplianceView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
         {page === "applications" && <ApplicationsView token={token} organizationId={user.organization_id} showToast={showToast} />}
         {page === "alerts" && <AlertsView devices={devices} token={token} organizationId={user.organization_id} />}
         {page === "profile" && <ProfileView token={token} user={user} />}
         {page === "settings" && <SettingsView token={token} organizationId={user.organization_id} policies={policies} showToast={showToast} />}
-        {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} />}
+        {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} role={user.role} />}
         {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />}
 
         {page === "devices" && (user.is_super_admin
