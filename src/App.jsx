@@ -108,6 +108,7 @@ function isDeviceOnline(device) {
 function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("OrganizationAdmin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -117,7 +118,7 @@ function LoginScreen({ onLogin }) {
     setError("");
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const data = await login(email, password, role);
       onLogin(data.token, data.user, data.refreshToken);
     } catch (err) {
       setError(err.message);
@@ -139,6 +140,13 @@ function LoginScreen({ onLogin }) {
       <form className="login-card" onSubmit={handleSubmit}>
         <h1>Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
         <p className="subtitle">Sign in to manage your devices</p>
+
+        <label>Role</label>
+        <select value={role} onChange={(e) => setRole(e.target.value)} required>
+          <option value="SuperAdmin">Super Admin</option>
+          <option value="OrganizationAdmin">Organization Admin</option>
+          <option value="DepartmentManager">Department Manager</option>
+        </select>
 
         <label>Email</label>
         <input
@@ -2607,6 +2615,7 @@ function EmployeesOrgCardsView({ token }) {
         token={token}
         organizationId={selectedOrg.id}
         onBack={() => setSelectedOrg(null)}
+        user={{ role: "SuperAdmin", is_super_admin: true }}
       />
     );
   }
@@ -2635,7 +2644,8 @@ function EmployeesOrgCardsView({ token }) {
   );
 }
 
-function EmployeesView({ token, organizationId, onBack }) {
+function EmployeesView({ token, organizationId, onBack, user }) {
+  const canCreateEmployees = user?.role === "OrganizationAdmin";
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
@@ -2653,6 +2663,7 @@ function EmployeesView({ token, organizationId, onBack }) {
   const [phone, setPhone] = useState("");
   const [designation, setDesignation] = useState("");
   const [role, setRole] = useState("Employee");
+  const [managerPassword, setManagerPassword] = useState("");
   const [deptId, setDeptId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -2695,9 +2706,9 @@ function EmployeesView({ token, organizationId, onBack }) {
       await createEmployee(token, {
         first_name: firstName.trim(), last_name: lastName.trim(), employee_code: code.trim(),
         email: email.trim(), phone_number: phone.trim(), designation: designation.trim(),
-        role, department_id: deptId,
+        role, department_id: deptId, password: role === "DepartmentManager" ? managerPassword : undefined,
       });
-      setFirstName(""); setLastName(""); setCode(""); setEmail(""); setPhone(""); setDesignation(""); setRole("Employee"); setDeptId("");
+      setFirstName(""); setLastName(""); setCode(""); setEmail(""); setPhone(""); setDesignation(""); setRole("Employee"); setDeptId(""); setManagerPassword("");
       load();
     } catch (err) {
       setError(err.message);
@@ -2773,31 +2784,40 @@ function EmployeesView({ token, organizationId, onBack }) {
         <h2 style={{ border: "none", margin: 0 }}>Employees</h2>
         {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
       </div>
-      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
-        <form onSubmit={handleCreate} className="policy-form">
-          <input type="text" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          <input type="text" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          <input type="text" placeholder="Employee ID, e.g. EMP0001" value={code} onChange={(e) => setCode(e.target.value)} />
-          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <input type="text" placeholder="Designation (optional)" value={designation} onChange={(e) => setDesignation(e.target.value)} />
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="Employee">Employee</option>
-            <option value="DepartmentManager">Department Manager</option>
-            <option value="OrganizationAdmin">Organization Admin</option>
-          </select>
-          <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-            <option value="">Select department…</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-          <button type="submit" disabled={saving || !firstName.trim() || !lastName.trim() || !code.trim() || !email.trim() || !deptId}>
-            {saving ? "Adding..." : "Add employee"}
-          </button>
-        </form>
-        {error && <p className="error-text">{error}</p>}
-      </div>
+      {canCreateEmployees && (
+        <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+          <form onSubmit={handleCreate} className="policy-form">
+            <input type="text" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <input type="text" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <input type="text" placeholder="Employee ID, e.g. EMP0001" value={code} onChange={(e) => setCode(e.target.value)} />
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input type="text" placeholder="Designation (optional)" value={designation} onChange={(e) => setDesignation(e.target.value)} />
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="Employee">Employee</option>
+              <option value="DepartmentManager">Department Manager</option>
+            </select>
+            {role === "DepartmentManager" && (
+              <input
+                type="password"
+                placeholder="Dashboard password (min 8 characters)"
+                value={managerPassword}
+                onChange={(e) => setManagerPassword(e.target.value)}
+              />
+            )}
+            <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+              <option value="">Select department…</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <button type="submit" disabled={saving || !firstName.trim() || !lastName.trim() || !code.trim() || !email.trim() || !deptId}>
+              {saving ? "Adding..." : "Add employee"}
+            </button>
+          </form>
+          {error && <p className="error-text">{error}</p>}
+        </div>
+      )}
 
       <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
         <input type="text" placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -4641,26 +4661,35 @@ function Dashboard({ token, user, onLogout }) {
     }
   }
 
+  const roleName = user.is_super_admin ? "SuperAdmin" : user.role;
+
+  const allNavItems = [
+    { key: "overview", label: "📊 Dashboard", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "org", label: `🏢 ${user.is_super_admin ? "Organizations" : "Organization"}`, roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "departments", label: "🗂️ Departments", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "employees", label: "👤 Employees", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "devices", label: "📱 Devices", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "policies", label: "📜 Policies", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "activity", label: "📜 Audit Logs", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "commands", label: "⚡ Commands", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "compliance", label: "✅ Compliance", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "applications", label: "📦 Applications", roles: ["OrganizationAdmin"] },
+    { key: "alerts", label: "🚨 Alerts", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "notifications", label: "📢 Notifications", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "reports", label: "📈 Reports", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "profile", label: "⚙️ Profile", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "settings", label: "🔧 Settings", roles: ["OrganizationAdmin"] },
+  ];
+  const visibleNavItems = allNavItems.filter((item) => item.roles.includes(roleName));
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <h1 className="sidebar-logo">Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
         <nav className="sidebar-nav">
-          <button className={page === "overview" ? "active" : ""} onClick={() => setPage("overview")}>📊 Dashboard</button>
-          <button className={page === "org" ? "active" : ""} onClick={() => setPage("org")}>🏢 {user.is_super_admin ? "Organizations" : "Organization"}</button>
-          <button className={page === "departments" ? "active" : ""} onClick={() => setPage("departments")}>🗂️ Departments</button>
-          <button className={page === "employees" ? "active" : ""} onClick={() => setPage("employees")}>👤 Employees</button>
-          <button className={page === "devices" ? "active" : ""} onClick={() => setPage("devices")}>📱 Devices</button>
-          <button className={page === "policies" ? "active" : ""} onClick={() => setPage("policies")}>📜 Policies</button>
-          <button className={page === "activity" ? "active" : ""} onClick={() => setPage("activity")}>📜 Audit Logs</button>
-          <button className={page === "commands" ? "active" : ""} onClick={() => setPage("commands")}>⚡ Commands</button>
-          <button className={page === "compliance" ? "active" : ""} onClick={() => setPage("compliance")}>✅ Compliance</button>
-          <button className={page === "applications" ? "active" : ""} onClick={() => setPage("applications")}>📦 Applications</button>
-          <button className={page === "alerts" ? "active" : ""} onClick={() => setPage("alerts")}>🚨 Alerts</button>
-          <button className={page === "notifications" ? "active" : ""} onClick={() => setPage("notifications")}>📢 Notifications</button>
-          <button className={page === "reports" ? "active" : ""} onClick={() => setPage("reports")}>📈 Reports</button>
-          <button className={page === "profile" ? "active" : ""} onClick={() => setPage("profile")}>⚙️ Profile</button>
-          <button className={page === "settings" ? "active" : ""} onClick={() => setPage("settings")}>🔧 Settings</button>
+          {visibleNavItems.map((item) => (
+            <button key={item.key} className={page === item.key ? "active" : ""} onClick={() => setPage(item.key)}>{item.label}</button>
+          ))}
         </nav>
       </aside>
 
@@ -4705,7 +4734,7 @@ function Dashboard({ token, user, onLogout }) {
           : <DepartmentsView token={token} policies={policies} />)}
         {page === "employees" && (user.is_super_admin
           ? <EmployeesOrgCardsView token={token} />
-          : <EmployeesView token={token} organizationId={user.organization_id} />)}
+          : <EmployeesView token={token} organizationId={user.organization_id} user={user} />)}
         {page === "activity" && <AuditLogsView token={token} organizationId={user.organization_id} />}
         {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
         {page === "compliance" && <ComplianceView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
