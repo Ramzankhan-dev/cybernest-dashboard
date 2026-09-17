@@ -136,11 +136,11 @@ export async function removeDevice(token, deviceUid) {
   return data;
 }
 
-export async function generateEnrollmentToken(token, employeeName, enrollmentProfileId = null) {
+export async function generateEnrollmentToken(token, employeeName, enrollmentProfileId = null, departmentId = null) {
   const res = await fetch(`${BASE_URL}/api/devices/generate-token`, {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ employee_name: employeeName, enrollment_profile_id: enrollmentProfileId }),
+    body: JSON.stringify({ employee_name: employeeName, enrollment_profile_id: enrollmentProfileId, department_id: departmentId }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to generate token");
@@ -478,11 +478,11 @@ export async function changeEmployeeDepartment(token, id, departmentId) {
   return data;
 }
 
-export async function changeEmployeeRole(token, id, role) {
+export async function changeEmployeeRole(token, id, role, password) {
   const res = await fetch(`${BASE_URL}/api/employees/${id}/role`, {
     method: "PATCH",
     headers: authHeaders(token),
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to change role");

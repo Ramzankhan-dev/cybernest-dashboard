@@ -2757,9 +2757,14 @@ function EmployeesView({ token, organizationId, onBack, user }) {
   }
 
   async function handleRoleChange(employee, newRole) {
+    let password;
+    if (newRole === "DepartmentManager") {
+      password = window.prompt(`Set a dashboard login password for ${employee.name} (min 8 characters):`);
+      if (!password) return; // cancelled
+    }
     setActing(employee.id);
     try {
-      await changeEmployeeRole(token, employee.id, newRole);
+      await changeEmployeeRole(token, employee.id, newRole, password);
       load();
     } catch (err) {
       setError(err.message);
@@ -2834,7 +2839,6 @@ function EmployeesView({ token, organizationId, onBack, user }) {
           <option value="">All roles</option>
           <option value="Employee">Employee</option>
           <option value="DepartmentManager">Department Manager</option>
-          <option value="OrganizationAdmin">Organization Admin</option>
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="">Sort: Newest</option>
@@ -2854,8 +2858,8 @@ function EmployeesView({ token, organizationId, onBack, user }) {
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
-              <th>Department</th>
-              <th>Role</th>
+              {canCreateEmployees && <th>Department</th>}
+              {canCreateEmployees && <th>Role</th>}
               <th>Device</th>
               <th>Status</th>
               <th>Actions</th>
@@ -2868,18 +2872,21 @@ function EmployeesView({ token, organizationId, onBack, user }) {
                 <td>{e.name}{e.designation && <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{e.designation}</div>}</td>
                 <td>{e.email || "—"}</td>
                 <td>{e.phone_number || "—"}</td>
-                <td>
-                  <select value={e.department_id} disabled={acting !== null} onChange={(ev) => handleDepartmentChange(e, ev.target.value)}>
-                    {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </td>
-                <td>
-                  <select value={e.role} disabled={acting !== null} onChange={(ev) => handleRoleChange(e, ev.target.value)}>
-                    <option value="Employee">Employee</option>
-                    <option value="DepartmentManager">Dept. Manager</option>
-                    <option value="OrganizationAdmin">Org Admin</option>
-                  </select>
-                </td>
+                {canCreateEmployees && (
+                  <td>
+                    <select value={e.department_id} disabled={acting !== null} onChange={(ev) => handleDepartmentChange(e, ev.target.value)}>
+                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </td>
+                )}
+                {canCreateEmployees && (
+                  <td>
+                    <select value={e.role} disabled={acting !== null} onChange={(ev) => handleRoleChange(e, ev.target.value)}>
+                      <option value="Employee">Employee</option>
+                      <option value="DepartmentManager">Dept. Manager</option>
+                    </select>
+                  </td>
+                )}
                 <td>{e.device_uid ? `${e.model || e.device_uid}` : "Unassigned"}</td>
                 <td><span className={`badge ${e.status === "active" ? "active" : "suspended"}`}>{e.status}</span></td>
                 <td className="actions">
@@ -2902,7 +2909,9 @@ function EmployeesView({ token, organizationId, onBack, user }) {
                     {e.status === "active" ? "Suspend" : "Reinstate"}
                   </button>
                   <button disabled={acting !== null} onClick={() => setPasswordModalEmployee(e)}>Set Password</button>
-                  <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
+                  {canCreateEmployees && (
+                    <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -2995,6 +3004,11 @@ function DashboardOverview({ token, user, onNavigate }) {
       <div className="dash-header-row">
         <div>
           <h2 style={{ border: "none", margin: 0 }}>Welcome back, {user.name}</h2>
+          <p style={{ fontSize: "0.82rem", color: "var(--teal)", margin: "0.3rem 0 0", fontWeight: 600 }}>
+            {user.is_super_admin ? "Super Admin" : user.role === "DepartmentManager" ? "Department Manager" : "Organization Admin"}
+            {user.department_name ? ` · ${user.department_name}` : ""}
+            {user.organization_name ? ` · ${user.organization_name}` : ""}
+          </p>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
             {lastUpdated && `Last updated ${lastUpdated.toLocaleTimeString()}`}
           </p>
@@ -3263,7 +3277,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   async function handleGenerateToken(e) {
     e.preventDefault();
     try {
-      const data = await generateEnrollmentToken(token, newDeviceName, selectedProfileId || null);
+      const data = await generateEnrollmentToken(token, newDeviceName, selectedProfileId || null, departmentId || null);
       setGeneratedUid(data.device.device_uid);
       setNewDeviceName("");
       load();
