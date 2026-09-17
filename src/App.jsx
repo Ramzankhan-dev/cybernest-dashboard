@@ -2340,6 +2340,7 @@ function DepartmentsOrgCardsView({ token, policies }) {
         policies={policies}
         organizationId={selectedOrg.id}
         onBack={() => setSelectedOrg(null)}
+        user={{ role: "SuperAdmin", is_super_admin: true }}
       />
     );
   }
@@ -2366,7 +2367,7 @@ function DepartmentsOrgCardsView({ token, policies }) {
   );
 }
 
-function DepartmentsView({ token, policies, organizationId, onBack }) {
+function DepartmentsView({ token, policies, organizationId, onBack, user }) {
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -3007,7 +3008,7 @@ function DashboardOverview({ token, user, onNavigate }) {
           <p style={{ fontSize: "0.82rem", color: "var(--teal)", margin: "0.3rem 0 0", fontWeight: 600 }}>
             {user.is_super_admin ? "Super Admin" : user.role === "DepartmentManager" ? "Department Manager" : "Organization Admin"}
             {user.department_name ? ` · ${user.department_name}` : ""}
-            {user.organization_name ? ` · ${user.organization_name}` : ""}
+            {!user.is_super_admin && user.organization_name ? ` · ${user.organization_name}` : ""}
           </p>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
             {lastUpdated && `Last updated ${lastUpdated.toLocaleTimeString()}`}
@@ -3241,7 +3242,8 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
   );
 }
 
-function DevicesCardListView({ token, policies, organizationId, departmentId, departmentName, onBack, showToast }) {
+function DevicesCardListView({ token, policies, organizationId, departmentId, departmentName, onBack, showToast, user }) {
+  const canCreateDevices = user?.role === "OrganizationAdmin";
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3324,62 +3326,64 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
         {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Departments</button>}
       </div>
 
-      <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-        <form onSubmit={handleGenerateToken} className="enroll-form">
-          <input
-            type="text"
-            placeholder="Employee name (optional)"
-            value={newDeviceName}
-            onChange={(e) => setNewDeviceName(e.target.value)}
-          />
-          <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
-            <option value="">No enrollment profile (24h token)</option>
-            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <button type="submit">+ Bulk Enroll</button>
-          <button type="button" className="ghost-dark" onClick={() => setShowProfileForm(!showProfileForm)}>
-            {showProfileForm ? "Cancel" : "+ New Profile"}
-          </button>
-        </form>
-
-        {showProfileForm && (
-          <form onSubmit={handleCreateProfile} className="policy-form" style={{ marginTop: "0.8rem", borderTop: "1px solid var(--line)", paddingTop: "0.8rem" }}>
-            <input type="text" placeholder="Profile name, e.g. Warehouse Devices" value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} />
-            <select value={newProfilePolicyId} onChange={(e) => setNewProfilePolicyId(e.target.value)}>
-              <option value="">No default policy</option>
-              {policies.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      {canCreateDevices && (
+        <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
+          <form onSubmit={handleGenerateToken} className="enroll-form">
+            <input
+              type="text"
+              placeholder="Employee name (optional)"
+              value={newDeviceName}
+              onChange={(e) => setNewDeviceName(e.target.value)}
+            />
+            <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
+              <option value="">No enrollment profile (24h token)</option>
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <input type="number" placeholder="Token expiry (hours)" value={newProfileExpiry} onChange={(e) => setNewProfileExpiry(e.target.value)} style={{ width: "140px" }} />
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem" }}>
-              <input type="checkbox" checked={newProfileRequireLogin} onChange={(e) => setNewProfileRequireLogin(e.target.checked)} />
-              Require Employee Login (SRS-A04)
-            </label>
-            <button type="submit">Save Profile</button>
+            <button type="submit">+ Bulk Enroll</button>
+            <button type="button" className="ghost-dark" onClick={() => setShowProfileForm(!showProfileForm)}>
+              {showProfileForm ? "Cancel" : "+ New Profile"}
+            </button>
           </form>
-        )}
 
-        {profiles.length > 0 && (
-          <ul className="policy-list" style={{ marginTop: "0.8rem" }}>
-            {profiles.map((p) => (
-              <li key={p.id}>
-                <span><strong>{p.name}</strong> <span className="policy-flags">{p.policy_name ? `· ${p.policy_name}` : ""} · {p.token_expiry_hours}h expiry{p.require_employee_login ? " · Login required" : ""}</span></span>
-                <button className="danger" onClick={async () => {
-                  if (!window.confirm(`Delete profile "${p.name}"?`)) return;
-                  try { await deleteEnrollmentProfile(token, p.id); loadProfiles(); }
-                  catch (err) { showToast(err.message, true); }
-                }}>Delete</button>
-              </li>
-            ))}
-          </ul>
-        )}
+          {showProfileForm && (
+            <form onSubmit={handleCreateProfile} className="policy-form" style={{ marginTop: "0.8rem", borderTop: "1px solid var(--line)", paddingTop: "0.8rem" }}>
+              <input type="text" placeholder="Profile name, e.g. Warehouse Devices" value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} />
+              <select value={newProfilePolicyId} onChange={(e) => setNewProfilePolicyId(e.target.value)}>
+                <option value="">No default policy</option>
+                {policies.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <input type="number" placeholder="Token expiry (hours)" value={newProfileExpiry} onChange={(e) => setNewProfileExpiry(e.target.value)} style={{ width: "140px" }} />
+              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem" }}>
+                <input type="checkbox" checked={newProfileRequireLogin} onChange={(e) => setNewProfileRequireLogin(e.target.checked)} />
+                Require Employee Login (SRS-A04)
+              </label>
+              <button type="submit">Save Profile</button>
+            </form>
+          )}
 
-        {generatedUid && (
-          <div className="generated-code">
-            <p>Enrollment code: <span className="mono">{generatedUid}</span><br />Scan this QR in the CyberNest Agent app, or enter the code manually.</p>
-            <img className="qr-image" src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${generatedUid}`} alt="Enrollment QR code" />
-          </div>
-        )}
-      </div>
+          {profiles.length > 0 && (
+            <ul className="policy-list" style={{ marginTop: "0.8rem" }}>
+              {profiles.map((p) => (
+                <li key={p.id}>
+                  <span><strong>{p.name}</strong> <span className="policy-flags">{p.policy_name ? `· ${p.policy_name}` : ""} · {p.token_expiry_hours}h expiry{p.require_employee_login ? " · Login required" : ""}</span></span>
+                  <button className="danger" onClick={async () => {
+                    if (!window.confirm(`Delete profile "${p.name}"?`)) return;
+                    try { await deleteEnrollmentProfile(token, p.id); loadProfiles(); }
+                    catch (err) { showToast(err.message, true); }
+                  }}>Delete</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {generatedUid && (
+            <div className="generated-code">
+              <p>Enrollment code: <span className="mono">{generatedUid}</span><br />Scan this QR in the CyberNest Agent app, or enter the code manually.</p>
+              <img className="qr-image" src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${generatedUid}`} alt="Enrollment QR code" />
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={(e) => { e.preventDefault(); load(); }} className="policy-form" style={{ marginBottom: "1rem" }}>
         <input type="text" placeholder="Search by device, IMEI, or user..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -3434,6 +3438,7 @@ function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToa
         departmentName={selectedDept.name}
         onBack={() => setSelectedDept(null)}
         showToast={showToast}
+        user={user}
       />
     );
   }
@@ -4593,7 +4598,33 @@ function SettingsView({ token, organizationId, policies, showToast }) {
 }
 
 function Dashboard({ token, user, onLogout }) {
-  const [page, setPage] = useState("overview");
+  const [page, setPageRaw] = useState(() => window.history.state?.page || "overview");
+
+  // Pushes a new history entry so the browser's Back button steps
+  // through the dashboard's own views instead of leaving the app
+  // (e.g. back to the login page, or out of the app entirely) —
+  // previously there was no history entry per view at all, so Back
+  // either did nothing useful or broke out of the dashboard.
+  function navigateToPage(newPage) {
+    if (newPage === page) return;
+    window.history.pushState({ page: newPage }, "", `#${newPage}`);
+    setPageRaw(newPage);
+  }
+  const setPage = navigateToPage;
+
+  useEffect(() => {
+    // First load: establish a base history entry so there's always
+    // something for Back to land on within the app.
+    if (!window.history.state?.page) {
+      window.history.replaceState({ page }, "", `#${page}`);
+    }
+    function handlePopState(e) {
+      setPageRaw(e.state?.page || "overview");
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -4745,7 +4776,7 @@ function Dashboard({ token, user, onLogout }) {
         {page === "org" && (user.is_super_admin ? <OrganizationsAdminView token={token} /> : <OrganizationView token={token} />)}
         {page === "departments" && (user.is_super_admin
           ? <DepartmentsOrgCardsView token={token} policies={policies} />
-          : <DepartmentsView token={token} policies={policies} />)}
+          : <DepartmentsView token={token} policies={policies} user={user} />)}
         {page === "employees" && (user.is_super_admin
           ? <EmployeesOrgCardsView token={token} />
           : <EmployeesView token={token} organizationId={user.organization_id} user={user} />)}
