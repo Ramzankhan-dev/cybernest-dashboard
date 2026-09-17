@@ -911,7 +911,8 @@ export async function getPolicyHistory(token, deviceUid) {
 }
 
 export async function getAuditLogs(token, params = {}) {
-  const qs = new URLSearchParams(params).toString();
+  const cleanParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== ""));
+  const qs = new URLSearchParams(cleanParams).toString();
   const res = await fetch(`${BASE_URL}/api/audit-logs?${qs}`, { headers: authHeaders(token) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to load audit logs");

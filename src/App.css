@@ -15,6 +15,8 @@
   --danger-dim: rgba(229, 72, 77, 0.12);
   --amber: #F5A623;
   --amber-dim: rgba(245, 166, 35, 0.12);
+  --violet: #8B7CF6;
+  --violet-dim: rgba(139, 124, 246, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -699,6 +701,12 @@ button.ghost-dark:hover { border-color: var(--teal); color: var(--teal); }
 .badge.active { background: var(--teal-dim); color: var(--teal); }
 .badge.setup { background: var(--amber-dim); color: var(--amber); }
 .badge.suspended { background: var(--danger-dim); color: var(--danger); }
+
+/* Audit log role badges — shown next to the user's name */
+.badge.role-superadmin { background: var(--teal-dim); color: var(--teal); }
+.badge.role-orgadmin { background: var(--amber-dim); color: var(--amber); }
+.badge.role-manager { background: var(--violet-dim); color: var(--violet); }
+.badge.role-system { background: var(--line); color: var(--text-muted); }
 
 /* ---------- Modal ---------- */
 .modal-overlay {
