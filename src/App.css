@@ -15,8 +15,6 @@
   --danger-dim: rgba(229, 72, 77, 0.12);
   --amber: #F5A623;
   --amber-dim: rgba(245, 166, 35, 0.12);
-  --violet: #8B7CF6;
-  --violet-dim: rgba(139, 124, 246, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -464,6 +462,32 @@ h3 { color: var(--text); }
   font-size: 0.8rem;
 }
 
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.field-group input,
+.field-group select {
+  width: 100%;
+  min-width: 0;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.policy-form .input-error,
+.enroll-form .input-error {
+  border-color: var(--danger) !important;
+}
+
 .enroll-form {
   display: flex;
   gap: 0.6rem;
@@ -701,12 +725,6 @@ button.ghost-dark:hover { border-color: var(--teal); color: var(--teal); }
 .badge.active { background: var(--teal-dim); color: var(--teal); }
 .badge.setup { background: var(--amber-dim); color: var(--amber); }
 .badge.suspended { background: var(--danger-dim); color: var(--danger); }
-
-/* Audit log role badges — shown next to the user's name */
-.badge.role-superadmin { background: var(--teal-dim); color: var(--teal); }
-.badge.role-orgadmin { background: var(--amber-dim); color: var(--amber); }
-.badge.role-manager { background: var(--violet-dim); color: var(--violet); }
-.badge.role-system { background: var(--line); color: var(--text-muted); }
 
 /* ---------- Modal ---------- */
 .modal-overlay {

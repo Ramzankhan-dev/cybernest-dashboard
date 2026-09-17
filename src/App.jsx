@@ -69,7 +69,6 @@ import {
   getNotificationStats,
   getNotifications,
   getMyOrganization,
-  updateMyOrganization,
   getAllOrganizations,
   createOrganization,
   updateOrganization,
@@ -1359,8 +1358,7 @@ function AuditLogsView({ token, organizationId }) {
 
   function load() {
     setLoading(true);
-    const params = { page, limit: 50 };
-    if (organizationId) params.organization_id = organizationId;
+    const params = { organization_id: organizationId, page, limit: 50 };
     if (search) params.search = search;
     if (moduleFilter) params.module = moduleFilter;
     if (statusFilter) params.status = statusFilter;
@@ -1384,13 +1382,6 @@ function AuditLogsView({ token, organizationId }) {
     if (status === "success") return "active";
     if (status === "failure") return "suspended";
     return "setup";
-  }
-
-  function roleBadgeClass(roleBadge) {
-    if (roleBadge === "Super Admin") return "role-superadmin";
-    if (roleBadge === "Organization Admin") return "role-orgadmin";
-    if (roleBadge && roleBadge.startsWith("Manager")) return "role-manager";
-    return "role-system";
   }
 
   return (
@@ -1452,14 +1443,7 @@ function AuditLogsView({ token, organizationId }) {
               <>
                 <tr key={l.id}>
                   <td>{new Date(l.created_at).toLocaleString()}</td>
-                  <td>
-                    {l.user_name || l.user_email || "System"}
-                    {l.role_badge && (
-                      <span className={`badge role-badge ${roleBadgeClass(l.role_badge)}`} style={{ marginLeft: "0.5rem" }}>
-                        {l.role_badge}
-                      </span>
-                    )}
-                  </td>
+                  <td>{l.user_name || l.user_email || "System"}</td>
                   <td>{l.module}</td>
                   <td>{l.action}</td>
                   <td><span className={`badge ${statusBadgeClass(l.status)}`}>{l.status}</span></td>
@@ -2284,51 +2268,26 @@ function OrganizationsAdminView({ token }) {
 
 function OrganizationView({ token }) {
   const [org, setOrg] = useState(null);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   function load() {
-    getMyOrganization(token).then((data) => {
-      setOrg(data);
-      setName(data.name);
-    }).catch(() => {});
+    getMyOrganization(token).then((data) => setOrg(data)).catch(() => {});
   }
 
   useEffect(() => { load(); }, []);
-
-  async function handleSave(e) {
-    e.preventDefault();
-    setSaving(true);
-    setMessage("");
-    try {
-      await updateMyOrganization(token, name);
-      setMessage("Organization updated.");
-      load();
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   if (!org) return <section><h2>Organization</h2><p>Loading...</p></section>;
 
   return (
     <section>
-      <h2>Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>{org.name}</h2>
+      </div>
       <div className="policy-panel">
-        <form onSubmit={handleSave} className="policy-form">
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-          <button type="submit" disabled={saving || !name.trim()}>
-            {saving ? "Saving..." : "Save name"}
-          </button>
-        </form>
-        {message && <p style={{ fontSize: "0.85rem", marginTop: "0.5rem" }}>{message}</p>}
-        <div className="report-grid" style={{ marginTop: "1.2rem" }}>
-          <div className="report-card"><h4>Departments</h4><div className="report-stat">{org.department_count}</div></div>
-          <div className="report-card"><h4>Devices</h4><div className="report-stat">{org.device_count}</div></div>
-          <div className="report-card"><h4>Admins</h4><div className="report-stat">{org.admin_count}</div></div>
+        <div className="report-grid">
+          <div className="report-card"><h4>Total Devices</h4><div className="report-stat">{org.device_count}</div></div>
+          <div className="report-card"><h4>Total Departments</h4><div className="report-stat">{org.department_count}</div></div>
+          <div className="report-card"><h4>Total Managers</h4><div className="report-stat">{org.manager_count}</div></div>
+          <div className="report-card"><h4>Total Employees</h4><div className="report-stat">{org.employee_count}</div></div>
         </div>
       </div>
     </section>
@@ -2683,10 +2642,20 @@ function EmployeesView({ token, organizationId, onBack, user }) {
   const [deptId, setDeptId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [deviceInputs, setDeviceInputs] = useState({});
   const [availableDevices, setAvailableDevices] = useState([]);
   const [acting, setActing] = useState(null);
   const [passwordModalEmployee, setPasswordModalEmployee] = useState(null);
+
+  function clearFieldError(field) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
 
   function load() {
     const params = { page, limit: 20 };
@@ -2713,9 +2682,27 @@ function EmployeesView({ token, organizationId, onBack, user }) {
     load();
   }
 
+  function validateEmployeeForm() {
+    const errors = {};
+    if (!firstName.trim()) errors.firstName = "* Please fill this field";
+    if (!lastName.trim()) errors.lastName = "* Please fill this field";
+    if (!code.trim()) errors.code = "* Please fill this field";
+    if (!email.trim()) errors.email = "* Please fill this field";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = "* Please enter a valid email";
+    if (!deptId) errors.deptId = "* Please select a department";
+    if (role === "DepartmentManager" && !managerPassword.trim()) {
+      errors.managerPassword = "* Please set a password (min 8 characters)";
+    } else if (role === "DepartmentManager" && managerPassword.trim().length < 8) {
+      errors.managerPassword = "* Password must be at least 8 characters";
+    }
+    return errors;
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !code.trim() || !email.trim() || !deptId) return;
+    const errors = validateEmployeeForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setSaving(true);
     setError("");
     try {
@@ -2725,6 +2712,7 @@ function EmployeesView({ token, organizationId, onBack, user }) {
         role, department_id: deptId, password: role === "DepartmentManager" ? managerPassword : undefined,
       });
       setFirstName(""); setLastName(""); setCode(""); setEmail(""); setPhone(""); setDesignation(""); setRole("Employee"); setDeptId(""); setManagerPassword("");
+      setFieldErrors({});
       load();
     } catch (err) {
       setError(err.message);
@@ -2807,11 +2795,39 @@ function EmployeesView({ token, organizationId, onBack, user }) {
       </div>
       {canCreateEmployees && (
         <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
-          <form onSubmit={handleCreate} className="policy-form">
-            <input type="text" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <input type="text" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-            <input type="text" placeholder="Employee ID, e.g. EMP0001" value={code} onChange={(e) => setCode(e.target.value)} />
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <form onSubmit={handleCreate} className="policy-form" noValidate>
+            <div className="field-group">
+              <input
+                type="text" placeholder="First name" value={firstName}
+                className={fieldErrors.firstName ? "input-error" : ""}
+                onChange={(e) => { setFirstName(e.target.value); clearFieldError("firstName"); }}
+              />
+              {fieldErrors.firstName && <p className="field-error">{fieldErrors.firstName}</p>}
+            </div>
+            <div className="field-group">
+              <input
+                type="text" placeholder="Last name" value={lastName}
+                className={fieldErrors.lastName ? "input-error" : ""}
+                onChange={(e) => { setLastName(e.target.value); clearFieldError("lastName"); }}
+              />
+              {fieldErrors.lastName && <p className="field-error">{fieldErrors.lastName}</p>}
+            </div>
+            <div className="field-group">
+              <input
+                type="text" placeholder="Employee ID, e.g. EMP0001" value={code}
+                className={fieldErrors.code ? "input-error" : ""}
+                onChange={(e) => { setCode(e.target.value); clearFieldError("code"); }}
+              />
+              {fieldErrors.code && <p className="field-error">{fieldErrors.code}</p>}
+            </div>
+            <div className="field-group">
+              <input
+                type="email" placeholder="Email" value={email}
+                className={fieldErrors.email ? "input-error" : ""}
+                onChange={(e) => { setEmail(e.target.value); clearFieldError("email"); }}
+              />
+              {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
+            </div>
             <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
             <input type="text" placeholder="Designation (optional)" value={designation} onChange={(e) => setDesignation(e.target.value)} />
             <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -2819,20 +2835,31 @@ function EmployeesView({ token, organizationId, onBack, user }) {
               <option value="DepartmentManager">Department Manager</option>
             </select>
             {role === "DepartmentManager" && (
-              <input
-                type="password"
-                placeholder="Dashboard password (min 8 characters)"
-                value={managerPassword}
-                onChange={(e) => setManagerPassword(e.target.value)}
-              />
+              <div className="field-group">
+                <input
+                  type="password"
+                  placeholder="Dashboard password (min 8 characters)"
+                  value={managerPassword}
+                  className={fieldErrors.managerPassword ? "input-error" : ""}
+                  onChange={(e) => { setManagerPassword(e.target.value); clearFieldError("managerPassword"); }}
+                />
+                {fieldErrors.managerPassword && <p className="field-error">{fieldErrors.managerPassword}</p>}
+              </div>
             )}
-            <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-              <option value="">Select department…</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-            <button type="submit" disabled={saving || !firstName.trim() || !lastName.trim() || !code.trim() || !email.trim() || !deptId}>
+            <div className="field-group">
+              <select
+                value={deptId}
+                className={fieldErrors.deptId ? "input-error" : ""}
+                onChange={(e) => { setDeptId(e.target.value); clearFieldError("deptId"); }}
+              >
+                <option value="">Select department…</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              {fieldErrors.deptId && <p className="field-error">{fieldErrors.deptId}</p>}
+            </div>
+            <button type="submit" disabled={saving}>
               {saving ? "Adding..." : "Add employee"}
             </button>
           </form>
@@ -3265,6 +3292,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   const [search, setSearch] = useState("");
   const [detailsDeviceUid, setDetailsDeviceUid] = useState(null);
   const [newDeviceName, setNewDeviceName] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [generatedUid, setGeneratedUid] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [selectedProfileId, setSelectedProfileId] = useState("");
@@ -3293,6 +3321,11 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
 
   async function handleGenerateToken(e) {
     e.preventDefault();
+    if (!newDeviceName.trim()) {
+      setFieldErrors({ newDeviceName: "* Please fill this field" });
+      return;
+    }
+    setFieldErrors({});
     try {
       const data = await generateEnrollmentToken(token, newDeviceName, selectedProfileId || null, departmentId || null);
       setGeneratedUid(data.device.device_uid);
@@ -3343,13 +3376,20 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
 
       {canCreateDevices && (
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-          <form onSubmit={handleGenerateToken} className="enroll-form">
-            <input
-              type="text"
-              placeholder="Employee name (optional)"
-              value={newDeviceName}
-              onChange={(e) => setNewDeviceName(e.target.value)}
-            />
+          <form onSubmit={handleGenerateToken} className="enroll-form" noValidate>
+            <div className="field-group">
+              <input
+                type="text"
+                placeholder="Employee name"
+                value={newDeviceName}
+                className={fieldErrors.newDeviceName ? "input-error" : ""}
+                onChange={(e) => {
+                  setNewDeviceName(e.target.value);
+                  if (fieldErrors.newDeviceName) setFieldErrors({});
+                }}
+              />
+              {fieldErrors.newDeviceName && <p className="field-error">{fieldErrors.newDeviceName}</p>}
+            </div>
             <select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
               <option value="">No enrollment profile (24h token)</option>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
