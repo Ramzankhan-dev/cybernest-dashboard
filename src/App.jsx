@@ -3466,7 +3466,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
   );
 }
 
-function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToast }) {
+function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToast, user }) {
   const [departments, setDepartments] = useState([]);
   const [unassignedCount, setUnassignedCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -3531,7 +3531,7 @@ function DevicesDeptCardsView({ token, policies, organizationId, onBack, showToa
   );
 }
 
-function DevicesOrgCardsView({ token, policies, showToast }) {
+function DevicesOrgCardsView({ token, policies, showToast, user }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3552,6 +3552,7 @@ function DevicesOrgCardsView({ token, policies, showToast }) {
         organizationId={selectedOrg.id}
         onBack={() => setSelectedOrg(null)}
         showToast={showToast}
+        user={user}
       />
     );
   }
@@ -4846,8 +4847,8 @@ function Dashboard({ token, user, onLogout }) {
         {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />}
 
         {page === "devices" && (user.is_super_admin
-          ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} />
-          : <DevicesDeptCardsView token={token} policies={policies} organizationId={user.organization_id} showToast={showToast} />)}
+          ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} user={user} />
+          : <DevicesDeptCardsView token={token} policies={policies} organizationId={user.organization_id} showToast={showToast} user={user} />)}
         {page === "policies" && (user.is_super_admin
           ? <PoliciesOrgCardsView token={token} showToast={showToast} onGlobalRefresh={loadPolicies} />
           : <PoliciesPageView token={token} organizationId={user.organization_id} showToast={showToast} onGlobalRefresh={loadPolicies} />)}
