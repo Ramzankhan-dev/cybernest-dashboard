@@ -540,7 +540,7 @@ function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
   );
 }
 
-function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh }) {
+function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, isSuperAdmin = false }) {
   const [policies, setPolicies] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -634,7 +634,9 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh })
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Policies</h2>
-        <button onClick={() => { setEditingPolicy(null); setShowFormModal(true); }}>+ Create Policy</button>
+        {!isSuperAdmin && (
+          <button onClick={() => { setEditingPolicy(null); setShowFormModal(true); }}>+ Create Policy</button>
+        )}
       </div>
 
       <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
@@ -659,7 +661,7 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh })
         <table>
           <thead>
             <tr>
-              <th>Name</th><th>Code</th><th>Description</th><th>Devices</th><th>Departments</th><th>Status</th><th>Last Updated</th><th>Actions</th>
+              <th>Name</th><th>Code</th><th>Description</th><th>Devices</th><th>Departments</th><th>Status</th><th>Last Updated</th>{!isSuperAdmin && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -672,14 +674,16 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh })
                 <td>{p.assigned_departments_count}</td>
                 <td><span className={`badge ${p.status === "active" ? "active" : "suspended"}`}>{p.status}</span></td>
                 <td>{new Date(p.updated_at || p.created_at).toLocaleDateString()}</td>
-                <td className="actions">
-                  <button onClick={() => { setEditingPolicy(p); setShowFormModal(true); }}>Edit</button>
-                  <button onClick={() => setAssigningPolicy(p)}>Assign</button>
-                  <button onClick={() => handleUnassign(p)}>Unassign All</button>
-                  <button onClick={() => handleDuplicate(p)}>Duplicate</button>
-                  <button onClick={() => handleToggleStatus(p)}>{p.status === "active" ? "Disable" : "Enable"}</button>
-                  <button className="danger" onClick={() => handleDelete(p)}>Delete</button>
-                </td>
+                {!isSuperAdmin && (
+                  <td className="actions">
+                    <button onClick={() => { setEditingPolicy(p); setShowFormModal(true); }}>Edit</button>
+                    <button onClick={() => setAssigningPolicy(p)}>Assign</button>
+                    <button onClick={() => handleUnassign(p)}>Unassign All</button>
+                    <button onClick={() => handleDuplicate(p)}>Duplicate</button>
+                    <button onClick={() => handleToggleStatus(p)}>{p.status === "active" ? "Disable" : "Enable"}</button>
+                    <button className="danger" onClick={() => handleDelete(p)}>Delete</button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -694,7 +698,7 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh })
         </div>
       )}
 
-      {showFormModal && (
+      {showFormModal && !isSuperAdmin && (
         <PolicyFormModal
           initial={editingPolicy}
           token={token}
@@ -704,7 +708,7 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh })
         />
       )}
 
-      {assigningPolicy && (
+      {assigningPolicy && !isSuperAdmin && (
         <PolicyAssignModal
           policy={assigningPolicy}
           token={token}
@@ -727,7 +731,7 @@ function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
   }, []);
 
   if (selectedOrg) {
-    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} onGlobalRefresh={onGlobalRefresh} />;
+    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} onGlobalRefresh={onGlobalRefresh} isSuperAdmin />;
   }
 
   return (
@@ -745,7 +749,7 @@ function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
   );
 }
 
-function LocationPanel({ device, token, onCommandSent }) {
+function LocationPanel({ device, token, onCommandSent, readOnly }) {
   const [lastLat, setLastLat] = useState(device.last_lat);
   const [lastLng, setLastLng] = useState(device.last_lng);
   const [lastAt, setLastAt] = useState(device.last_location_at);
@@ -838,7 +842,9 @@ function LocationPanel({ device, token, onCommandSent }) {
     <div>
       <div className="dash-header-row">
         <h3 style={{ margin: 0 }}>Live Location</h3>
-        <button onClick={handleLocate} disabled={locating}>{locating ? "Locating..." : "Locate Device"}</button>
+        {!readOnly && (
+          <button onClick={handleLocate} disabled={locating}>{locating ? "Locating..." : "Locate Device"}</button>
+        )}
       </div>
 
       {hasLocation ? (
@@ -861,25 +867,35 @@ function LocationPanel({ device, token, onCommandSent }) {
       <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
         Circular area — enter coordinates manually (copy from Google Maps) and a radius in meters. An alert is logged if the device leaves this area.
       </p>
-      <form onSubmit={handleSaveGeofence} className="modal-form" style={{ maxWidth: "360px" }}>
-        <label>Center latitude</label>
-        <input value={geoLat} onChange={(e) => setGeoLat(e.target.value)} placeholder="e.g. 33.6844" />
-        <label>Center longitude</label>
-        <input value={geoLng} onChange={(e) => setGeoLng(e.target.value)} placeholder="e.g. 73.0479" />
-        <label>Radius (meters)</label>
-        <input value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} placeholder="e.g. 200" type="number" />
-        {geoRadius && Number(geoRadius) < 100 && (
-          <p style={{ fontSize: "0.74rem", color: "var(--amber)", margin: "0.3rem 0 0" }}>
-            ⚠️ Android's geofencing isn't reliable below ~100m — GPS/Wi-Fi location accuracy alone can be off by 20-50m, so smaller radii often won't trigger.
+      {readOnly ? (
+        geoEnabled && geoLat && geoLng ? (
+          <p style={{ fontSize: "0.78rem", color: "var(--teal)" }}>
+            ✓ Active — {geoRadius}m radius around {parseFloat(geoLat).toFixed(5)}, {parseFloat(geoLng).toFixed(5)}
           </p>
-        )}
-        {geoError && <p className="error-text">{geoError}</p>}
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.8rem" }}>
-          <button type="submit" disabled={savingGeo}>{savingGeo ? "Saving..." : "Save Geofence"}</button>
-          {geoEnabled && <button type="button" className="danger" onClick={handleRemoveGeofence}>Remove Geofence</button>}
-        </div>
-      </form>
-      {geoEnabled && geoLat && geoLng && (
+        ) : (
+          <p className="empty-state">No geofence configured.</p>
+        )
+      ) : (
+        <form onSubmit={handleSaveGeofence} className="modal-form" style={{ maxWidth: "360px" }}>
+          <label>Center latitude</label>
+          <input value={geoLat} onChange={(e) => setGeoLat(e.target.value)} placeholder="e.g. 33.6844" />
+          <label>Center longitude</label>
+          <input value={geoLng} onChange={(e) => setGeoLng(e.target.value)} placeholder="e.g. 73.0479" />
+          <label>Radius (meters)</label>
+          <input value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} placeholder="e.g. 200" type="number" />
+          {geoRadius && Number(geoRadius) < 100 && (
+            <p style={{ fontSize: "0.74rem", color: "var(--amber)", margin: "0.3rem 0 0" }}>
+              ⚠️ Android's geofencing isn't reliable below ~100m — GPS/Wi-Fi location accuracy alone can be off by 20-50m, so smaller radii often won't trigger.
+            </p>
+          )}
+          {geoError && <p className="error-text">{geoError}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.8rem" }}>
+            <button type="submit" disabled={savingGeo}>{savingGeo ? "Saving..." : "Save Geofence"}</button>
+            {geoEnabled && <button type="button" className="danger" onClick={handleRemoveGeofence}>Remove Geofence</button>}
+          </div>
+        </form>
+      )}
+      {!readOnly && geoEnabled && geoLat && geoLng && (
         <p style={{ fontSize: "0.78rem", color: "var(--teal)", marginTop: "0.6rem" }}>
           ✓ Active — {geoRadius}m radius around {parseFloat(geoLat).toFixed(5)}, {parseFloat(geoLng).toFixed(5)}
         </p>
@@ -908,7 +924,7 @@ function LocationPanel({ device, token, onCommandSent }) {
   );
 }
 
-function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
+function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, readOnly }) {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
@@ -952,9 +968,11 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
   const body = (
     <>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-        <button className="ghost-dark" onClick={handleRequestUpdate} disabled={requesting}>
-          {requesting ? "Requesting..." : "Request update from device"}
-        </button>
+        {!readOnly && (
+          <button className="ghost-dark" onClick={handleRequestUpdate} disabled={requesting}>
+            {requesting ? "Requesting..." : "Request update from device"}
+          </button>
+        )}
         <button className="ghost-dark" onClick={loadApps}>Refresh list</button>
       </div>
       {loading && <p>Loading...</p>}
@@ -970,7 +988,7 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
               <th>App</th>
               <th>Package</th>
               <th>Status</th>
-              <th>Actions</th>
+              {!readOnly && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -979,30 +997,32 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
                 <td>{app.app_name || "—"}</td>
                 <td className="mono">{app.package_name}</td>
                 <td>{app.status}</td>
-                <td className="actions">
-                  {app.status === "blocked" ? (
+                {!readOnly && (
+                  <td className="actions">
+                    {app.status === "blocked" ? (
+                      <button
+                        disabled={acting !== null}
+                        onClick={() => handleAppAction("unblock_app", app.package_name)}
+                      >
+                        {acting === app.package_name + "unblock_app" ? "..." : "Allow"}
+                      </button>
+                    ) : (
+                      <button
+                        disabled={acting !== null}
+                        onClick={() => handleAppAction("block_app", app.package_name)}
+                      >
+                        {acting === app.package_name + "block_app" ? "..." : "Block"}
+                      </button>
+                    )}
                     <button
+                      className="danger"
                       disabled={acting !== null}
-                      onClick={() => handleAppAction("unblock_app", app.package_name)}
+                      onClick={() => handleAppAction("uninstall_app", app.package_name)}
                     >
-                      {acting === app.package_name + "unblock_app" ? "..." : "Allow"}
+                      {acting === app.package_name + "uninstall_app" ? "..." : "Uninstall"}
                     </button>
-                  ) : (
-                    <button
-                      disabled={acting !== null}
-                      onClick={() => handleAppAction("block_app", app.package_name)}
-                    >
-                      {acting === app.package_name + "block_app" ? "..." : "Block"}
-                    </button>
-                  )}
-                  <button
-                    className="danger"
-                    disabled={acting !== null}
-                    onClick={() => handleAppAction("uninstall_app", app.package_name)}
-                  >
-                    {acting === app.package_name + "uninstall_app" ? "..." : "Uninstall"}
-                  </button>
-                </td>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -1026,7 +1046,7 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded }) {
   );
 }
 
-function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) {
+function DeviceDetailsView({ device, token, policies, onCommandSent, onClose, readOnly }) {
   const [tab, setTab] = useState("general");
   const [sending, setSending] = useState(null);
   const [isLocked, setIsLocked] = useState(!!device.is_locked);
@@ -1147,20 +1167,26 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             </tbody>
           </table>
           <div className="quick-actions">
-            <button onClick={() => handleCommand(isLocked ? "unlock" : "lock")} disabled={sending !== null}>{isLocked ? "Unlock" : "Lock"}</button>
-            <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
-            <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
-            <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
+            {!readOnly ? (
+              <>
+                <button onClick={() => handleCommand(isLocked ? "unlock" : "lock")} disabled={sending !== null}>{isLocked ? "Unlock" : "Lock"}</button>
+                <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
+                <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
+                <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
+              </>
+            ) : (
+              <p className="empty-state" style={{ margin: 0 }}>Read-only — Super Admin cannot send commands to devices.</p>
+            )}
           </div>
         </div>
       )}
 
       {tab === "location" && (
-        <LocationPanel device={device} token={token} onCommandSent={onCommandSent} />
+        <LocationPanel device={device} token={token} onCommandSent={onCommandSent} readOnly={readOnly} />
       )}
 
       {tab === "apps" && (
-        <AppsPanel deviceUid={device.device_uid} token={token} onCommandSent={onCommandSent} embedded />
+        <AppsPanel deviceUid={device.device_uid} token={token} onCommandSent={onCommandSent} embedded readOnly={readOnly} />
       )}
 
       {tab === "policy" && (
@@ -1211,21 +1237,25 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
             </>
           )}
 
-          <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Apply a saved policy:</div>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
-            <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>
-              <option value="">Select a saved policy…</option>
-              {policies.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <button disabled={sending !== null || !selectedPolicy} onClick={handleApplyPolicy}>
-              {sending === "apply_policy" ? "Applying..." : "Apply policy"}
-            </button>
-            <button disabled={sending !== null} onClick={handleUnassignPolicy}>
-              {sending === "unassign_policy" ? "Removing..." : "Unassign current policy"}
-            </button>
-          </div>
+          {!readOnly && (
+            <>
+              <div className="app-block-label" style={{ marginBottom: "0.6rem" }}>Apply a saved policy:</div>
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
+                <select value={selectedPolicy} onChange={(e) => setSelectedPolicy(e.target.value)}>
+                  <option value="">Select a saved policy…</option>
+                  {policies.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <button disabled={sending !== null || !selectedPolicy} onClick={handleApplyPolicy}>
+                  {sending === "apply_policy" ? "Applying..." : "Apply policy"}
+                </button>
+                <button disabled={sending !== null} onClick={handleUnassignPolicy}>
+                  {sending === "unassign_policy" ? "Removing..." : "Unassign current policy"}
+                </button>
+              </div>
+            </>
+          )}
           {policies.length > 0 && (
             <>
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.4rem" }}>
@@ -1253,30 +1283,36 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose }) 
 
       {tab === "commands" && (
         <div>
-          <div className="quick-actions" style={{ marginBottom: "1.2rem" }}>
-            <button onClick={() => handleCommand("block_camera")} disabled={sending !== null}>Block camera</button>
-            <button onClick={() => handleCommand("unblock_camera")} disabled={sending !== null}>Unblock camera</button>
-            <button onClick={() => handleCommand("block_bluetooth")} disabled={sending !== null}>Block Bluetooth</button>
-            <button onClick={() => handleCommand("unblock_bluetooth")} disabled={sending !== null}>Unblock Bluetooth</button>
-            <button onClick={() => handleCommand(isLocked ? "unlock" : "lock")} disabled={sending !== null}>{isLocked ? "Unlock" : "Lock"}</button>
-            <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
-            <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
-            <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
-            <button onClick={() => handleCommand("restart")} disabled={sending !== null}>Restart</button>
-            <button onClick={() => handleCommand("enable_kiosk", appPackage.trim() || null)} disabled={sending !== null}>Enable Kiosk</button>
-            <button onClick={() => handleCommand("disable_kiosk")} disabled={sending !== null}>Disable Kiosk</button>
-            <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
-            <input
-              type="text"
-              placeholder="Package name — for app block/unblock, or Enable Kiosk target"
-              value={appPackage}
-              onChange={(e) => setAppPackage(e.target.value)}
-            />
-            <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("block_app", appPackage.trim())}>Block app</button>
-            <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("unblock_app", appPackage.trim())}>Unblock app</button>
-          </div>
+          {!readOnly ? (
+            <>
+              <div className="quick-actions" style={{ marginBottom: "1.2rem" }}>
+                <button onClick={() => handleCommand("block_camera")} disabled={sending !== null}>Block camera</button>
+                <button onClick={() => handleCommand("unblock_camera")} disabled={sending !== null}>Unblock camera</button>
+                <button onClick={() => handleCommand("block_bluetooth")} disabled={sending !== null}>Block Bluetooth</button>
+                <button onClick={() => handleCommand("unblock_bluetooth")} disabled={sending !== null}>Unblock Bluetooth</button>
+                <button onClick={() => handleCommand(isLocked ? "unlock" : "lock")} disabled={sending !== null}>{isLocked ? "Unlock" : "Lock"}</button>
+                <button onClick={() => handleCommand("ring")} disabled={sending !== null}>Ring</button>
+                <button onClick={() => handleCommand("sync")} disabled={sending !== null}>Sync</button>
+                <button onClick={() => handleCommand("refresh_policy")} disabled={sending !== null}>Refresh Policy</button>
+                <button onClick={() => handleCommand("restart")} disabled={sending !== null}>Restart</button>
+                <button onClick={() => handleCommand("enable_kiosk", appPackage.trim() || null)} disabled={sending !== null}>Enable Kiosk</button>
+                <button onClick={() => handleCommand("disable_kiosk")} disabled={sending !== null}>Disable Kiosk</button>
+                <button className="danger" onClick={handleWipe} disabled={sending !== null}>Wipe</button>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
+                <input
+                  type="text"
+                  placeholder="Package name — for app block/unblock, or Enable Kiosk target"
+                  value={appPackage}
+                  onChange={(e) => setAppPackage(e.target.value)}
+                />
+                <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("block_app", appPackage.trim())}>Block app</button>
+                <button disabled={sending !== null || !appPackage.trim()} onClick={() => handleCommand("unblock_app", appPackage.trim())}>Unblock app</button>
+              </div>
+            </>
+          ) : (
+            <p className="empty-state">Read-only — Super Admin cannot send commands to devices.</p>
+          )}
           <h2 style={{ fontSize: "0.95rem" }}>Command history</h2>
           <HistoryPanel deviceUid={device.device_uid} token={token} embedded />
         </div>
@@ -1341,7 +1377,63 @@ function HistoryPanel({ deviceUid, token, onClose, embedded }) {
   );
 }
 
-function AuditLogsView({ token, organizationId }) {
+// [Role Badge] - Module, used to label who performed each audit event.
+// The backend attaches `role` (SuperAdmin / OrganizationAdmin /
+// DepartmentManager, or null for system-generated events) and
+// `department_name` (for Department Managers only) to every row.
+function auditModuleBadge(log) {
+  let roleLabel;
+  if (log.role === "SuperAdmin") roleLabel = "Super Admin";
+  else if (log.role === "OrganizationAdmin") roleLabel = "Organization Admin";
+  else if (log.role === "DepartmentManager") roleLabel = `Manager - ${log.department_name || "—"}`;
+  else roleLabel = "System";
+  return `[${roleLabel}] - ${log.module}`;
+}
+
+function AuditLogsOrgCardsView({ token }) {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    getAllOrganizations(token, { limit: 100 })
+      .then((data) => setOrgs(data.organizations))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (selectedOrg) {
+    return (
+      <AuditLogsView
+        token={token}
+        organizationId={selectedOrg.id}
+        onBack={() => setSelectedOrg(null)}
+      />
+    );
+  }
+
+  return (
+    <section>
+      <h2>Audit Logs — Select an Organization</h2>
+      {loading && <p>Loading...</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
+      {!loading && orgs.length > 0 && (
+        <div className="report-grid">
+          {orgs.map((org) => (
+            <div key={org.id} className="report-card" style={{ cursor: "pointer" }} onClick={() => setSelectedOrg(org)}>
+              <h4 style={{ margin: 0 }}>{org.name}</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0" }}>{org.code}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AuditLogsView({ token, organizationId, onBack }) {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [total, setTotal] = useState(0);
@@ -1386,7 +1478,10 @@ function AuditLogsView({ token, organizationId }) {
 
   return (
     <section>
-      <h2>Audit logs</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Audit logs</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+      </div>
 
       {stats && (
         <div className="kpi-grid" style={{ marginBottom: "1.2rem" }}>
@@ -1417,14 +1512,14 @@ function AuditLogsView({ token, organizationId }) {
         <button
           type="button"
           className="ghost-dark"
-          onClick={() => exportToCSV("audit-logs", ["Time", "User", "Module", "Action", "Status", "IP"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", l.module, l.action, l.status, l.ip_address || "—"]))}
+          onClick={() => exportToCSV("audit-logs", ["Time", "User", "Module", "Action", "Status", "IP"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status, l.ip_address || "—"]))}
         >
           Export CSV
         </button>
         <button
           type="button"
           className="ghost-dark"
-          onClick={() => exportToPDF("audit-logs", "Audit Logs", ["Time", "User", "Module", "Action", "Status"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", l.module, l.action, l.status]))}
+          onClick={() => exportToPDF("audit-logs", "Audit Logs", ["Time", "User", "Module", "Action", "Status"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status]))}
         >
           Export PDF
         </button>
@@ -1436,7 +1531,7 @@ function AuditLogsView({ token, organizationId }) {
       {!loading && logs.length > 0 && (
         <table>
           <thead>
-            <tr><th>Time</th><th>User</th><th>Module</th><th>Action</th><th>Status</th><th>IP Address</th><th>Actions</th></tr>
+            <tr><th>Time</th><th>User</th><th>Module / Role</th><th>Action</th><th>Status</th><th>IP Address</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {logs.map((l) => (
@@ -1444,7 +1539,7 @@ function AuditLogsView({ token, organizationId }) {
                 <tr key={l.id}>
                   <td>{new Date(l.created_at).toLocaleString()}</td>
                   <td>{l.user_name || l.user_email || "System"}</td>
-                  <td>{l.module}</td>
+                  <td>{auditModuleBadge(l)}</td>
                   <td>{l.action}</td>
                   <td><span className={`badge ${statusBadgeClass(l.status)}`}>{l.status}</span></td>
                   <td className="mono" style={{ fontSize: "0.72rem" }}>{l.ip_address || "—"}</td>
@@ -2342,6 +2437,7 @@ function DepartmentsOrgCardsView({ token, policies }) {
 }
 
 function DepartmentsView({ token, policies, organizationId, onBack, user }) {
+  const isReadOnly = !!user?.is_super_admin;
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -2433,30 +2529,32 @@ function DepartmentsView({ token, policies, organizationId, onBack, user }) {
         <h2 style={{ border: "none", margin: 0 }}>Departments</h2>
         {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
       </div>
-      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
-        <form onSubmit={handleCreate} className="policy-form">
-          <input type="text" placeholder="Department name, e.g. Sales" value={name} onChange={(e) => setName(e.target.value)} />
-          {!editingId && (
-            <input type="text" placeholder="Code, e.g. SALES01" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
-          )}
-          <input type="text" placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-          <select value={policyId} onChange={(e) => setPolicyId(e.target.value)}>
-            <option value="">No default policy</option>
-            {policies.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <button type="submit" disabled={saving || !name.trim() || (!editingId && !code.trim())}>
-            {saving ? "Saving..." : editingId ? "Update department" : "Create department"}
-          </button>
-          {editingId && (
-            <button type="button" className="ghost-dark" onClick={() => { setEditingId(null); setName(""); setCode(""); setDescription(""); setPolicyId(""); }}>
-              Cancel edit
+      {!isReadOnly && (
+        <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+          <form onSubmit={handleCreate} className="policy-form">
+            <input type="text" placeholder="Department name, e.g. Sales" value={name} onChange={(e) => setName(e.target.value)} />
+            {!editingId && (
+              <input type="text" placeholder="Code, e.g. SALES01" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+            )}
+            <input type="text" placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <select value={policyId} onChange={(e) => setPolicyId(e.target.value)}>
+              <option value="">No default policy</option>
+              {policies.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <button type="submit" disabled={saving || !name.trim() || (!editingId && !code.trim())}>
+              {saving ? "Saving..." : editingId ? "Update department" : "Create department"}
             </button>
-          )}
-        </form>
-        {error && <p className="error-text">{error}</p>}
-      </div>
+            {editingId && (
+              <button type="button" className="ghost-dark" onClick={() => { setEditingId(null); setName(""); setCode(""); setDescription(""); setPolicyId(""); }}>
+                Cancel edit
+              </button>
+            )}
+          </form>
+          {error && <p className="error-text">{error}</p>}
+        </div>
+      )}
 
       <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
         <input type="text" placeholder="Search departments..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -2488,7 +2586,7 @@ function DepartmentsView({ token, policies, organizationId, onBack, user }) {
               <th>Devices</th>
               <th>Online</th>
               <th>Status</th>
-              <th>Actions</th>
+              {!isReadOnly && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -2502,11 +2600,13 @@ function DepartmentsView({ token, policies, organizationId, onBack, user }) {
                 <td>{d.device_count}</td>
                 <td>{d.online_count}</td>
                 <td><span className={`badge ${d.status === "active" ? "active" : "suspended"}`}>{d.status}</span></td>
-                <td className="actions">
-                  <button onClick={() => startEdit(d)}>Edit</button>
-                  <button onClick={() => handleToggleStatus(d)}>{d.status === "active" ? "Disable" : "Enable"}</button>
-                  <button className="danger" onClick={() => handleDelete(d)}>Delete</button>
-                </td>
+                {!isReadOnly && (
+                  <td className="actions">
+                    <button onClick={() => startEdit(d)}>Edit</button>
+                    <button onClick={() => handleToggleStatus(d)}>{d.status === "active" ? "Disable" : "Enable"}</button>
+                    <button className="danger" onClick={() => handleDelete(d)}>Delete</button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -2621,6 +2721,7 @@ function EmployeesOrgCardsView({ token }) {
 
 function EmployeesView({ token, organizationId, onBack, user }) {
   const canCreateEmployees = user?.role === "OrganizationAdmin";
+  const isSuperAdmin = !!user?.is_super_admin;
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
@@ -2901,11 +3002,11 @@ function EmployeesView({ token, organizationId, onBack, user }) {
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
-              {canCreateEmployees && <th>Department</th>}
+              {(canCreateEmployees || isSuperAdmin) && <th>Department</th>}
               {canCreateEmployees && <th>Role</th>}
               <th>Device</th>
               <th>Status</th>
-              <th>Actions</th>
+              {!isSuperAdmin && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -2922,6 +3023,7 @@ function EmployeesView({ token, organizationId, onBack, user }) {
                     </select>
                   </td>
                 )}
+                {isSuperAdmin && <td>{e.department_name || "—"}</td>}
                 {canCreateEmployees && (
                   <td>
                     <select value={e.role} disabled={acting !== null} onChange={(ev) => handleRoleChange(e, ev.target.value)}>
@@ -2932,30 +3034,32 @@ function EmployeesView({ token, organizationId, onBack, user }) {
                 )}
                 <td>{e.device_uid ? `${e.model || e.device_uid}` : "Unassigned"}</td>
                 <td><span className={`badge ${e.status === "active" ? "active" : "suspended"}`}>{e.status}</span></td>
-                <td className="actions">
-                  {!e.device_uid && (
-                    <>
-                      <select
-                        style={{ width: "150px" }}
-                        value={deviceInputs[e.id] || ""}
-                        onChange={(ev) => setDeviceInputs({ ...deviceInputs, [e.id]: ev.target.value })}
-                      >
-                        <option value="">Select device…</option>
-                        {availableDevices.map((d) => (
-                          <option key={d.id} value={d.device_uid}>{d.model || d.device_uid} {d.imei ? `(${d.imei.slice(-4)})` : ""}</option>
-                        ))}
-                      </select>
-                      <button disabled={acting !== null || !deviceInputs[e.id]} onClick={() => handleAssignDevice(e.id)}>Assign</button>
-                    </>
-                  )}
-                  <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
-                    {e.status === "active" ? "Suspend" : "Reinstate"}
-                  </button>
-                  <button disabled={acting !== null} onClick={() => setPasswordModalEmployee(e)}>Set Password</button>
-                  {canCreateEmployees && (
-                    <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
-                  )}
-                </td>
+                {!isSuperAdmin && (
+                  <td className="actions">
+                    {!e.device_uid && (
+                      <>
+                        <select
+                          style={{ width: "150px" }}
+                          value={deviceInputs[e.id] || ""}
+                          onChange={(ev) => setDeviceInputs({ ...deviceInputs, [e.id]: ev.target.value })}
+                        >
+                          <option value="">Select device…</option>
+                          {availableDevices.map((d) => (
+                            <option key={d.id} value={d.device_uid}>{d.model || d.device_uid} {d.imei ? `(${d.imei.slice(-4)})` : ""}</option>
+                          ))}
+                        </select>
+                        <button disabled={acting !== null || !deviceInputs[e.id]} onClick={() => handleAssignDevice(e.id)}>Assign</button>
+                      </>
+                    )}
+                    <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
+                      {e.status === "active" ? "Suspend" : "Reinstate"}
+                    </button>
+                    <button disabled={acting !== null} onClick={() => setPasswordModalEmployee(e)}>Set Password</button>
+                    {canCreateEmployees && (
+                      <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -3221,7 +3325,7 @@ function EnrollmentQrModal({ device, onClose }) {
   );
 }
 
-function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
+function DeviceCard({ device, token, onView, onCommandSent, onRemoved, readOnly }) {
   const online = isDeviceOnline(device);
   const [sending, setSending] = useState(null);
   const [isLocked, setIsLocked] = useState(!!device.is_locked);
@@ -3268,16 +3372,22 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
       </table>
       <div className="actions">
         <button onClick={() => onView(device.device_uid)}>View</button>
-        <button className={isLocked ? "" : "danger"} disabled={sending !== null} onClick={() => quickCommand(isLocked ? "unlock" : "lock")}>
-          {sending === (isLocked ? "unlock" : "lock") ? "..." : (isLocked ? "Unlock" : "Lock")}
-        </button>
-        <button disabled={sending !== null} onClick={() => quickCommand("sync")}>
-          {sending === "sync" ? "..." : "Sync"}
-        </button>
+        {!readOnly && (
+          <>
+            <button className={isLocked ? "" : "danger"} disabled={sending !== null} onClick={() => quickCommand(isLocked ? "unlock" : "lock")}>
+              {sending === (isLocked ? "unlock" : "lock") ? "..." : (isLocked ? "Unlock" : "Lock")}
+            </button>
+            <button disabled={sending !== null} onClick={() => quickCommand("sync")}>
+              {sending === "sync" ? "..." : "Sync"}
+            </button>
+          </>
+        )}
         {!device.fcm_token && (
           <button className="ghost-dark" onClick={() => setShowQr(true)}>Show QR</button>
         )}
-        <button className="danger" onClick={handleRemove}>Remove</button>
+        {!readOnly && (
+          <button className="danger" onClick={handleRemove}>Remove</button>
+        )}
       </div>
       {showQr && <EnrollmentQrModal device={device} onClose={() => setShowQr(false)} />}
     </div>
@@ -3286,6 +3396,7 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved }) {
 
 function DevicesCardListView({ token, policies, organizationId, departmentId, departmentName, onBack, showToast, user }) {
   const canCreateDevices = user?.role === "OrganizationAdmin";
+  const isReadOnly = !!user?.is_super_admin;
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3357,6 +3468,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
         policies={policies}
         onCommandSent={showToast}
         onClose={() => setDetailsDeviceUid(null)}
+        readOnly={isReadOnly}
       />
     );
   }
@@ -3445,6 +3557,7 @@ function DevicesCardListView({ token, policies, organizationId, departmentId, de
               onView={setDetailsDeviceUid}
               onCommandSent={showToast}
               onRemoved={load}
+              readOnly={isReadOnly}
             />
           ))}
         </div>
@@ -3693,50 +3806,55 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
     <section>
       <h2>Command Center</h2>
 
-      <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-        <form onSubmit={handleSendCommand}>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.8rem" }}>
-            {isSuperAdmin && (
-              <select value={orgFilter} onChange={(e) => setOrgFilter(e.target.value)}>
-                <option value="">Select organization…</option>
-                {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+      {!isSuperAdmin ? (
+        <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
+          <form onSubmit={handleSendCommand}>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.8rem" }}>
+              <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+                <option value="all">All Devices</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
-            )}
-            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} disabled={isSuperAdmin && !orgFilter}>
-              <option value="all">All Devices</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </div>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>Select device(s):</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.8rem", maxHeight: "120px", overflowY: "auto" }}>
+              {devices.length === 0 && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No devices to show — pick an organization/department above.</p>}
+              {devices.map((d) => (
+                <label key={d.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", border: "1px solid var(--line)", padding: "0.3rem 0.6rem", borderRadius: "5px" }}>
+                  <input type="checkbox" checked={selectedDevices.includes(d.device_uid)} onChange={() => toggleDeviceSelect(d.device_uid)} />
+                  {d.model || d.device_uid} {d.assigned_employee_name ? `(${d.assigned_employee_name})` : ""}
+                  {d.department_name && <span style={{ color: "var(--teal)", fontSize: "0.7rem" }}> · {d.department_name}</span>}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <select value={newCommandType} onChange={(e) => setNewCommandType(e.target.value)}>
+                <option value="sync">Sync Device</option>
+                <option value="lock">Lock Device</option>
+                <option value="ring">Ring Device</option>
+                <option value="restart">Restart Device</option>
+                <option value="refresh_policy">Refresh Policy</option>
+                <option value="list_apps">Request Device Info (Apps)</option>
+                <option value="wipe">Factory Reset (destructive)</option>
+              </select>
+              <button type="submit" disabled={sending || selectedDevices.length === 0}>
+                {sending ? "Sending..." : `Send to ${selectedDevices.length || 0} device(s)`}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.8rem" }}>
+            <select value={orgFilter} onChange={(e) => setOrgFilter(e.target.value)}>
+              <option value="">Select organization…</option>
+              {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           </div>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>Select device(s):</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.8rem", maxHeight: "120px", overflowY: "auto" }}>
-            {devices.length === 0 && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>No devices to show — pick an organization/department above.</p>}
-            {devices.map((d) => (
-              <label key={d.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", border: "1px solid var(--line)", padding: "0.3rem 0.6rem", borderRadius: "5px" }}>
-                <input type="checkbox" checked={selectedDevices.includes(d.device_uid)} onChange={() => toggleDeviceSelect(d.device_uid)} />
-                {d.model || d.device_uid} {d.assigned_employee_name ? `(${d.assigned_employee_name})` : ""}
-                {isSuperAdmin && orgFilter && (
-                  <span style={{ color: "var(--amber)", fontSize: "0.7rem" }}> · {orgs.find((o) => String(o.id) === String(orgFilter))?.name}</span>
-                )}
-                {d.department_name && <span style={{ color: "var(--teal)", fontSize: "0.7rem" }}> · {d.department_name}</span>}
-              </label>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <select value={newCommandType} onChange={(e) => setNewCommandType(e.target.value)}>
-              <option value="sync">Sync Device</option>
-              <option value="lock">Lock Device</option>
-              <option value="ring">Ring Device</option>
-              <option value="restart">Restart Device</option>
-              <option value="refresh_policy">Refresh Policy</option>
-              <option value="list_apps">Request Device Info (Apps)</option>
-              <option value="wipe">Factory Reset (destructive)</option>
-            </select>
-            <button type="submit" disabled={sending || selectedDevices.length === 0}>
-              {sending ? "Sending..." : `Send to ${selectedDevices.length || 0} device(s)`}
-            </button>
-          </div>
-        </form>
-      </div>
+          <p className="empty-state" style={{ margin: 0 }}>
+            Read-only — Super Admin can view command history below but cannot send, cancel, or retry commands.
+          </p>
+        </div>
+      )}
 
       <div className="tab-strip">
         <button className={`tab-btn ${tab === "pending" ? "active" : ""}`} onClick={() => { setTab("pending"); setPage(1); }}>Pending</button>
@@ -3756,7 +3874,7 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
       {!loading && commands.length > 0 && (
         <table>
           <thead>
-            <tr><th>ID</th><th>Command</th><th>Device</th><th>Employee</th><th>Sent By</th><th>Sent Time</th><th>Status</th><th>Actions</th></tr>
+            <tr><th>ID</th><th>Command</th><th>Device</th><th>Employee</th><th>Sent By</th><th>Sent Time</th><th>Status</th>{!isSuperAdmin && <th>Actions</th>}</tr>
           </thead>
           <tbody>
             {commands.map((c) => (
@@ -3771,10 +3889,12 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
                   <span className={`badge ${c.status === "executed" ? "active" : c.status === "failed" ? "suspended" : "setup"}`}>{statusLabel(c.status)}</span>
                   {c.error_message && <div style={{ fontSize: "0.7rem", color: "var(--danger)", marginTop: "0.2rem" }}>{c.error_message}</div>}
                 </td>
-                <td className="actions">
-                  {c.status === "pending" && <button disabled={acting !== null} onClick={() => handleCancel(c)}>Cancel</button>}
-                  {c.status === "failed" && <button disabled={acting !== null} onClick={() => handleRetry(c)}>Retry</button>}
-                </td>
+                {!isSuperAdmin && (
+                  <td className="actions">
+                    {c.status === "pending" && <button disabled={acting !== null} onClick={() => handleCancel(c)}>Cancel</button>}
+                    {c.status === "failed" && <button disabled={acting !== null} onClick={() => handleRetry(c)}>Retry</button>}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -4823,7 +4943,9 @@ function Dashboard({ token, user, onLogout }) {
         {page === "employees" && (user.is_super_admin
           ? <EmployeesOrgCardsView token={token} />
           : <EmployeesView token={token} organizationId={user.organization_id} user={user} />)}
-        {page === "activity" && <AuditLogsView token={token} organizationId={user.organization_id} />}
+        {page === "activity" && (user.is_super_admin
+          ? <AuditLogsOrgCardsView token={token} />
+          : <AuditLogsView token={token} organizationId={user.organization_id} />)}
         {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
         {page === "compliance" && <ComplianceView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
         {page === "applications" && <ApplicationsView token={token} organizationId={user.organization_id} showToast={showToast} />}
