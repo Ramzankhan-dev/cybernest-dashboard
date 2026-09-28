@@ -1,0 +1,22 @@
+/* Stylesheet entry point (imported once from main.jsx).
+   Files are imported in cascade order — later files win ties — so keep
+   responsive.css last. Colours/theme tokens live in themes.css; component
+   and feature styles sit next to the code that uses them. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import "./themes.css";
+@import "./globals.css";
+@import "../features/auth/Auth.css";
+@import "../components/layout/Sidebar.css";
+@import "../components/layout/Header.css";
+@import "../components/common/ThemeToggle.css";
+@import "../components/layout/MainLayout.css";
+@import "./cards.css";
+@import "../components/common/KpiCard.css";
+@import "../features/dashboard/Dashboard.css";
+@import "../components/charts/Charts.css";
+@import "./alert-list.css";
+@import "./quick-actions.css";
+@import "./components.css";
+@import "./responsive.css";

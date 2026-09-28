@@ -1,70 +1,18 @@
 // Sidebar with an expanded / collapsed (icon-only) state and collapsible
 // navigation groups.
 //
-// Navigation items, their labels and role filtering are decided by the
-// caller (Dashboard in App.jsx) — this component only arranges the items
-// it receives, so role-based visibility is unchanged. Grouping is purely
-// visual: a child is only shown if the caller passed it in, and any item
-// not listed in NAV_LAYOUT is still rendered as a standalone entry.
+// Navigation items, their labels and role filtering come from
+// config/navigation.js (via MainLayout) — this component only arranges the
+// items it receives, so role-based visibility is unchanged. Grouping is
+// purely visual: a child is only shown if the caller passed it in, and any
+// item not listed in NAV_LAYOUT is still rendered as a standalone entry.
+// Persisted state (collapsed, open groups) lives in hooks/useSidebar.js.
 
 import { useEffect, useRef, useState } from "react";
-import {
-  BrandMark,
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronDown,
-  IconLayers,
-  IconLock,
-  IconSliders,
-} from "./icons.jsx";
-
-export const SIDEBAR_STORAGE_KEY = "sidebarCollapsed";
-export const SIDEBAR_GROUPS_STORAGE_KEY = "sidebarOpenGroups";
-
-// Display layout. Strings are nav item keys (routes unchanged).
-const NAV_LAYOUT = [
-  "overview",
-  { id: "management", label: "Management", icon: IconLayers, children: ["org", "departments", "employees", "devices"] },
-  { id: "security", label: "Security", icon: IconLock, children: ["policies", "compliance", "alerts", "activity"] },
-  { id: "operations", label: "Operations", icon: IconSliders, children: ["commands", "applications", "notifications"] },
-  "reports",
-  "profile",
-  "settings",
-];
-
-const GROUP_OF = {};
-NAV_LAYOUT.forEach((entry) => {
-  if (typeof entry !== "string") entry.children.forEach((k) => { GROUP_OF[k] = entry.id; });
-});
-
-function readCollapsed() {
-  try {
-    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
-  } catch {
-    return false; // default for first-time users: expanded
-  }
-}
-
-export function useSidebarCollapsed() {
-  const [collapsed, setCollapsed] = useState(readCollapsed);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? "true" : "false");
-    } catch {
-      // Non-critical — state still applies for this session.
-    }
-  }, [collapsed]);
-  return [collapsed, setCollapsed];
-}
-
-function readOpenGroups() {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(SIDEBAR_GROUPS_STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.filter((g) => typeof g === "string") : [];
-  } catch {
-    return [];
-  }
-}
+import { BrandMark, IconChevronLeft, IconChevronRight, IconChevronDown } from "../icons";
+import { NAV_LAYOUT, GROUP_OF } from "../../config/navigation";
+import { SIDEBAR_GROUPS_STORAGE_KEY } from "../../config/constants";
+import { useSidebarCollapsed, readOpenGroups } from "../../hooks/useSidebar";
 
 // Builds the rendered structure from the role-filtered items.
 function buildNav(items) {

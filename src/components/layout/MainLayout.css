@@ -1,0 +1,29 @@
+/* Main content area and page header row. */
+
+/* ==================================================================
+   Main content
+   ================================================================== */
+
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+  width: 100%;
+}
+
+/* Opacity-only (no transform) so fixed-position modals inside a page are
+   never re-anchored to the section while it animates. */
+main > section { animation: page-in 0.24s ease; }
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dash-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}

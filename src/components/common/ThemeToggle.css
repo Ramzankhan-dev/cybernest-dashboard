@@ -1,0 +1,79 @@
+/* Theme controls: header switch, Settings/Profile segmented picker. */
+
+/* Theme toggle (header / login) */
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 68px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-toggle:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.theme-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  box-shadow: var(--glow);
+  transition: transform 0.25s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.theme-toggle.is-light .theme-toggle-thumb { transform: translateX(32px); }
+.theme-toggle-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  transition: color 0.2s ease;
+}
+.theme-toggle.is-dark .theme-toggle-icon.moon { color: var(--on-accent); }
+.theme-toggle.is-light .theme-toggle-icon.sun { color: var(--on-accent); }
+
+/* Segmented theme picker (Settings / Profile) */
+.segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+button.segmented-option {
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  border: none;
+  min-height: 34px;
+  padding: 0.4rem 1rem;
+  border-radius: 10px;
+  font-weight: 500;
+}
+button.segmented-option:hover:not(:disabled):not(.active) { background: var(--accent-softer); color: var(--text-primary); box-shadow: none; }
+button.segmented-option.active { background: var(--accent-gradient); color: var(--on-accent); box-shadow: var(--glow); }
+
+.appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.appearance-row p { margin: 0.15rem 0 0; font-size: 0.8rem; color: var(--text-muted); }

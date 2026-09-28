@@ -1,0 +1,86 @@
+/* KPI stat cards and colour tones. */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  --kpi-fg: var(--tone-violet);
+  --kpi-bg: var(--tone-violet-bg);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  text-align: left;
+  padding: 1.15rem 1.2rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--kpi-fg) 11%, var(--surface)) 0%, var(--surface) 62%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.kpi-card::after {
+  content: "";
+  position: absolute;
+  right: -30px;
+  bottom: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--kpi-fg) 16%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.kpi-card[role="button"]:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-fg) 40%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+.kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--kpi-bg);
+  color: var(--kpi-fg);
+  flex-shrink: 0;
+}
+.kpi-body { min-width: 0; }
+.kpi-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  color: var(--text-primary);
+  line-height: 1.15;
+  margin-top: 0.15rem;
+}
+.kpi-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--kpi-fg);
+}
+
+.tone-violet { --kpi-fg: var(--tone-violet); --kpi-bg: var(--tone-violet-bg); }
+.tone-mint   { --kpi-fg: var(--tone-mint);   --kpi-bg: var(--tone-mint-bg); }
+.tone-rose   { --kpi-fg: var(--tone-rose);   --kpi-bg: var(--tone-rose-bg); }
+.tone-indigo { --kpi-fg: var(--tone-indigo); --kpi-bg: var(--tone-indigo-bg); }
+.tone-red    { --kpi-fg: var(--tone-red);    --kpi-bg: var(--tone-red-bg); }
+.tone-amber  { --kpi-fg: var(--tone-amber);  --kpi-bg: var(--tone-amber-bg); }
+.tone-cyan   { --kpi-fg: var(--tone-cyan);   --kpi-bg: var(--tone-cyan-bg); }
+.tone-peach  { --kpi-fg: var(--tone-peach);  --kpi-bg: var(--tone-peach-bg); }

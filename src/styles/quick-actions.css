@@ -1,0 +1,62 @@
+/* Quick-action buttons (device details) and dashboard action tiles. */
+
+/* Quick actions: tiles on the dashboard, pill buttons elsewhere */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.quick-actions button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  min-height: 36px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 11px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+.quick-actions button:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+.quick-actions button.danger { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+.quick-actions button.danger:hover:not(:disabled) { border-color: var(--danger); background: var(--danger); color: #fff; }
+
+.quick-actions.qa-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.quick-actions.qa-tiles button {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 96px;
+  padding: 0.9rem 0.5rem;
+  border-radius: 16px;
+  background: var(--surface-sunken);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  font-size: 0.8rem;
+}
+.quick-actions.qa-tiles button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: color-mix(in srgb, var(--kpi-fg) 45%, var(--border));
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.qa-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--kpi-bg);
+  color: var(--kpi-fg);
+}

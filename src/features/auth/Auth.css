@@ -1,0 +1,151 @@
+/* Login / forgot-password screens. */
+
+/* ==================================================================
+   Login
+   ================================================================== */
+
+.login-screen {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(700px 480px at 12% 18%, var(--bg-glow-1), transparent 65%),
+    radial-gradient(600px 420px at 88% 85%, var(--bg-glow-2), transparent 65%),
+    var(--bg);
+  overflow: hidden;
+}
+
+.theme-toggle.login-theme-toggle {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.login-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  width: 100%;
+  max-width: 940px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.login-aside {
+  position: relative;
+  padding: 2.75rem 2.5rem;
+  background: var(--hero-bg);
+  color: var(--hero-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+}
+.login-aside::after {
+  content: "";
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  right: -140px;
+  bottom: -160px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 40px rgba(255, 255, 255, 0.04), 0 0 0 90px rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+}
+.login-aside .brand-row { display: flex; align-items: center; gap: 0.75rem; }
+.login-aside .brand-row strong { color: var(--hero-text); font-size: 1.2rem; letter-spacing: -0.01em; }
+.login-aside h2 {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  color: var(--hero-text);
+  font-size: 2rem;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+.login-aside p { color: var(--hero-muted); margin: 0; font-size: 0.95rem; max-width: 34ch; }
+.login-feature-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; position: relative; z-index: 1; }
+.login-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.88rem;
+  color: var(--hero-text);
+}
+.login-feature-list .feature-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--hero-chip);
+}
+
+.login-card {
+  background: transparent;
+  border: none;
+  padding: 2.75rem 2.5rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-card h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+.login-card h1::after { content: ""; }
+
+.login-card .subtitle {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.login-card label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  margin-top: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.login-card input,
+.login-card select {
+  min-height: 44px;
+  font-size: 0.93rem;
+}
+
+.login-card button {
+  margin-top: 1.5rem;
+  min-height: 46px;
+  font-size: 0.95rem;
+  border-radius: 12px;
+}
+
+.forgot-link {
+  align-self: center;
+  text-align: center;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  border-radius: 6px;
+}
+.forgot-link:hover { text-decoration: underline; }

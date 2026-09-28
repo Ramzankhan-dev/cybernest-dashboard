@@ -1,8 +1,9 @@
+// Entry point: global providers + global styles.
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import { ThemeProvider } from "./theme.jsx";
-import "./App.css";
+import { ThemeProvider } from "./context/ThemeContext";
+import "./styles/index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
