@@ -94,7 +94,40 @@ import {
   globalSearch,
 } from "./api";
 import { exportToCSV, exportToPDF } from "./exportUtils";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
+import Sidebar from "./Sidebar.jsx";
+import { ThemeToggle, ThemeSegmented, useChartTheme, chartTooltipProps } from "./theme.jsx";
+import {
+  BrandMark,
+  IconDashboard,
+  IconBuilding,
+  IconFolder,
+  IconUsers,
+  IconUserPlus,
+  IconUser,
+  IconSmartphone,
+  IconShieldCheck,
+  IconShieldAlert,
+  IconScroll,
+  IconZap,
+  IconCheckCircle,
+  IconPackage,
+  IconAlertTriangle,
+  IconBell,
+  IconMegaphone,
+  IconBarChart,
+  IconSettings,
+  IconSearch,
+  IconLogOut,
+  IconRefresh,
+  IconWifi,
+  IconWifiOff,
+  IconClock,
+  IconX,
+  IconArrowRight,
+  IconActivity,
+  IconSparkles,
+} from "./icons.jsx";
 
 // A device only counts as "online" if it checked in recently — heartbeats
 // go out every 30s, so anything older than 90s (missed ~3 beats) means
@@ -129,15 +162,22 @@ function LoginScreen({ onLogin }) {
   if (showForgot) {
     return (
       <div className="login-screen">
-        <ForgotPasswordFlow onBackToLogin={() => setShowForgot(false)} />
+        <ThemeToggle className="login-theme-toggle" />
+        <div className="login-shell">
+          <LoginAside />
+          <ForgotPasswordFlow onBackToLogin={() => setShowForgot(false)} />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="login-screen">
+      <ThemeToggle className="login-theme-toggle" />
+      <div className="login-shell">
+      <LoginAside />
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
+        <h1><BrandMark size={34} /><span>Cyber<span className="brand-accent">Nest</span></span></h1>
         <p className="subtitle">Sign in to manage your devices</p>
 
         <label>Role</label>
@@ -169,9 +209,38 @@ function LoginScreen({ onLogin }) {
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
-        <p className="forgot-link" onClick={() => setShowForgot(true)}>Forgot password?</p>
+        <p
+          className="forgot-link"
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowForgot(true)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowForgot(true); } }}
+        >Forgot password?</p>
       </form>
+      </div>
     </div>
+  );
+}
+
+// Decorative brand panel shown beside the login / reset forms (hidden on
+// narrow screens). Describes real product capabilities — no fake stats.
+function LoginAside() {
+  return (
+    <aside className="login-aside" aria-hidden="true">
+      <div className="brand-row">
+        <BrandMark size={40} />
+        <strong>CyberNest</strong>
+      </div>
+      <div>
+        <h2>Every device. One secure nest.</h2>
+        <p>Enroll, monitor and protect your organization's Android fleet from a single console.</p>
+      </div>
+      <ul className="login-feature-list">
+        <li><span className="feature-icon"><IconSmartphone size={16} /></span>Enrollment &amp; remote device commands</li>
+        <li><span className="feature-icon"><IconShieldCheck size={16} /></span>Policy enforcement &amp; compliance</li>
+        <li><span className="feature-icon"><IconBell size={16} /></span>Real-time alerts &amp; audit trails</li>
+      </ul>
+    </aside>
   );
 }
 
@@ -243,7 +312,7 @@ function ForgotPasswordFlow({ onBackToLogin }) {
       className="login-card"
       onSubmit={step === "email" ? handleSendOtp : step === "otp" ? handleVerifyOtp : handleResetPassword}
     >
-      <h1>Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
+      <h1><BrandMark size={34} /><span>Cyber<span className="brand-accent">Nest</span></span></h1>
 
       {step === "email" && (
         <>
@@ -297,7 +366,13 @@ function ForgotPasswordFlow({ onBackToLogin }) {
         </button>
       )}
 
-      <p className="forgot-link" onClick={onBackToLogin}>
+      <p
+        className="forgot-link"
+        role="button"
+        tabIndex={0}
+        onClick={onBackToLogin}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBackToLogin(); } }}
+      >
         {step === "done" ? "Back to login" : "Back to login"}
       </p>
     </form>
@@ -380,6 +455,7 @@ function PolicyAssignModal({ policy, token, onClose, showToast }) {
   return (
     <div className="modal-overlay" onClick={() => onClose(false)}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={() => onClose(false)}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Assign "{policy.name}"</h3>
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
           <button type="button" className={mode === "device" ? "" : "ghost-dark"} onClick={() => setMode("device")}>📱 To Device</button>
@@ -458,6 +534,7 @@ function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" style={{ width: "100%", maxWidth: "560px" }} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>{initial ? "Edit Policy" : "Create Policy"}</h3>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>Policy Name *</label>
@@ -658,7 +735,7 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, i
       {loading && <p>Loading...</p>}
       {!loading && policies.length === 0 && <p className="empty-state">No policies yet.</p>}
       {!loading && policies.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>Name</th><th>Code</th><th>Description</th><th>Devices</th><th>Departments</th><th>Status</th><th>Last Updated</th>{!isSuperAdmin && <th>Actions</th>}
@@ -687,7 +764,7 @@ function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, i
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 20 && (
@@ -906,7 +983,7 @@ function LocationPanel({ device, token, onCommandSent, readOnly }) {
         <button className="ghost-dark" onClick={loadAlerts}>Refresh</button>
       </div>
       {alerts.length > 0 ? (
-        <table>
+        <div className="table-scroll"><table>
           <thead><tr><th>When</th><th>Location</th></tr></thead>
           <tbody>
             {alerts.map((a, i) => (
@@ -916,7 +993,7 @@ function LocationPanel({ device, token, onCommandSent, readOnly }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : (
         <p className="empty-state">No exits recorded yet.</p>
       )}
@@ -982,7 +1059,7 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, readOnl
         </p>
       )}
       {!loading && apps.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>App</th>
@@ -1026,7 +1103,7 @@ function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, readOnl
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </>
   );
@@ -1150,7 +1227,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose, re
 
       {tab === "general" && (
         <div>
-          <table style={{ marginBottom: "1.2rem" }}>
+          <div className="table-scroll"><table style={{ marginBottom: "1.2rem" }}>
             <tbody>
               <tr><td><strong>Manufacturer</strong></td><td>{device.manufacturer || "—"}</td></tr>
               <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
@@ -1165,7 +1242,7 @@ function DeviceDetailsView({ device, token, policies, onCommandSent, onClose, re
               <tr><td><strong>Last seen</strong></td><td>{device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}</td></tr>
               <tr><td><strong>Enrolled</strong></td><td>{device.enrolled_at ? new Date(device.enrolled_at).toLocaleString() : "—"}</td></tr>
             </tbody>
-          </table>
+          </table></div>
           <div className="quick-actions">
             {!readOnly ? (
               <>
@@ -1338,7 +1415,7 @@ function HistoryPanel({ deviceUid, token, onClose, embedded }) {
         <p className="empty-state">No commands sent to this device yet.</p>
       )}
       {!loading && history.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>Command</th>
@@ -1357,7 +1434,7 @@ function HistoryPanel({ deviceUid, token, onClose, embedded }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </>
   );
@@ -1529,7 +1606,7 @@ function AuditLogsView({ token, organizationId, onBack }) {
       {error && <p className="error-text">{error}</p>}
       {!loading && logs.length === 0 && <p className="empty-state">No audit events yet.</p>}
       {!loading && logs.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>Time</th><th>User</th><th>Module / Role</th><th>Action</th><th>Status</th><th>IP Address</th><th>Actions</th></tr>
           </thead>
@@ -1563,7 +1640,7 @@ function AuditLogsView({ token, organizationId, onBack }) {
               </>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 50 && (
@@ -1736,6 +1813,16 @@ function ProfileView({ token, user }) {
       <p style={{ marginBottom: "1.2rem", fontSize: "0.9rem" }}>
         <strong>{user.name}</strong> — <span className="mono">{user.email}</span>
       </p>
+
+      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+        <div className="appearance-row">
+          <div>
+            <h3 style={{ fontSize: "0.95rem", margin: 0 }}>Appearance</h3>
+            <p>Choose the dashboard theme. Your choice is saved on this browser.</p>
+          </div>
+          <ThemeSegmented />
+        </div>
+      </div>
 
       <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
         <h3 style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>Change password</h3>
@@ -1965,7 +2052,7 @@ function NotificationCenterView({ token, devices, organizationId }) {
       {loading && <p>Loading...</p>}
       {!loading && sent.length === 0 && <p className="empty-state">No notifications sent yet.</p>}
       {!loading && sent.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>Title</th><th>Type</th><th>Target</th><th>Priority</th><th>Sent By</th><th>Sent Time</th><th>Status</th><th>Actions</th>
@@ -1988,7 +2075,7 @@ function NotificationCenterView({ token, devices, organizationId }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 30 && (
@@ -2163,6 +2250,7 @@ function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>{isEdit ? "Edit Organization" : "Create Organization"}</h3>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>Organization Name *</label>
@@ -2318,14 +2406,14 @@ function OrganizationsAdminView({ token }) {
               <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0.8rem" }}>
                 {org.code} · {org.industry} · {org.country}
               </p>
-              <table style={{ marginBottom: "0.8rem" }}>
+              <div className="table-scroll"><table style={{ marginBottom: "0.8rem" }}>
                 <tbody>
                   <tr><td>Departments</td><td style={{ textAlign: "right" }}>{org.department_count}</td></tr>
                   <tr><td>Employees</td><td style={{ textAlign: "right" }}>{org.employee_count}</td></tr>
                   <tr><td>Devices</td><td style={{ textAlign: "right" }}>{org.device_count}</td></tr>
                   <tr><td>Admin</td><td style={{ textAlign: "right" }}>{org.admin_name || "—"}</td></tr>
                 </tbody>
-              </table>
+              </table></div>
               <div className="actions">
                 <button onClick={() => { setEditingOrg(org); setShowModal(true); }}>Edit</button>
                 {org.status === "active" ? (
@@ -2575,7 +2663,7 @@ function DepartmentsView({ token, policies, organizationId, onBack, user }) {
       {loading && <p>Loading...</p>}
       {!loading && departments.length === 0 && <p className="empty-state">No departments yet.</p>}
       {!loading && departments.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>Name</th>
@@ -2610,7 +2698,7 @@ function DepartmentsView({ token, policies, organizationId, onBack, user }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 20 && (
@@ -2649,6 +2737,7 @@ function SetPasswordModal({ employee, token, onClose, onSaved }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Set Password — {employee.name}</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
           Used for Employee Login on the Android agent (SRS-A04). The employee signs in with their Employee ID ({employee.employee_code}) or email.
@@ -2995,7 +3084,7 @@ function EmployeesView({ token, organizationId, onBack, user }) {
 
       {employees.length === 0 && <p className="empty-state">No employees yet.</p>}
       {employees.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr>
               <th>Employee ID</th>
@@ -3063,7 +3152,7 @@ function EmployeesView({ token, organizationId, onBack, user }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 20 && (
@@ -3086,13 +3175,143 @@ function EmployeesView({ token, organizationId, onBack, user }) {
   );
 }
 
-const CHART_COLORS = ["#0F6E56", "#1D2A44", "#C99A3E", "#A63B2A", "#5F5E5A"];
+// Chart colours come from the active theme (see theme.jsx → CHART_THEMES).
 
-function KpiCard({ label, value, onClick }) {
+function KpiCard({ label, value, onClick, icon: Icon, tone = "violet", hint }) {
+  const clickable = !!onClick;
   return (
-    <div className="kpi-card" onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
-      <div className="kpi-value">{value}</div>
-      <div className="kpi-label">{label}</div>
+    <div
+      className={`kpi-card tone-${tone}`}
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      style={{ cursor: clickable ? "pointer" : "default" }}
+    >
+      {Icon && <span className="kpi-icon"><Icon size={20} /></span>}
+      <div className="kpi-body">
+        <div className="kpi-label">{label}</div>
+        <div className="kpi-value">{value ?? "—"}</div>
+        {hint && <div className="kpi-hint">{hint}</div>}
+      </div>
+    </div>
+  );
+}
+
+function percentOf(part, whole) {
+  const p = Number(part) || 0;
+  const w = Number(whole) || 0;
+  if (w <= 0) return null;
+  return Math.round((p / w) * 100);
+}
+
+// Donut + legend used for the two categorical charts (real API values).
+function DonutChartCard({ title, subtitle, data, colors, centerLabel }) {
+  const total = data.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+  return (
+    <div className="chart-card">
+      <div className="card-header">
+        <div>
+          <h4>{title}</h4>
+          {subtitle && <p className="card-subtitle">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="donut-wrap">
+        <div className="donut-box">
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={54}
+                outerRadius={78}
+                paddingAngle={total > 0 && data.filter((d) => d.value > 0).length > 1 ? 3 : 0}
+                cornerRadius={6}
+                stroke="none"
+              >
+                {data.map((entry, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+              </Pie>
+              <Tooltip {...chartTooltipProps} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="donut-center">
+            <strong>{total}</strong>
+            <span>{centerLabel}</span>
+          </div>
+        </div>
+        <ul className="chart-legend">
+          {data.map((d, i) => {
+            const pct = percentOf(d.value, total);
+            return (
+              <li key={d.name}>
+                <span className="legend-dot" style={{ background: colors[i % colors.length] }} />
+                <span className="legend-name">{d.name}</span>
+                <span className="legend-value">
+                  {d.value}
+                  {pct != null && <span className="legend-pct">{pct}%</span>}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function BarChartCard({ title, subtitle, data, dataKeyX, gradientId, gradient, chartTheme }) {
+  return (
+    <div className="chart-card">
+      <div className="card-header">
+        <div>
+          <h4>{title}</h4>
+          {subtitle && <p className="card-subtitle">{subtitle}</p>}
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={210}>
+        <BarChart data={data} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={gradient[0]} stopOpacity={1} />
+              <stop offset="100%" stopColor={gradient[1]} stopOpacity={0.85} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke={chartTheme.grid} strokeDasharray="3 4" />
+          <XAxis dataKey={dataKeyX} fontSize={11} tick={{ fill: chartTheme.axis }} axisLine={false} tickLine={false} />
+          <YAxis allowDecimals={false} fontSize={11} tick={{ fill: chartTheme.axis }} axisLine={false} tickLine={false} />
+          <Tooltip {...chartTooltipProps} cursor={{ fill: chartTheme.cursor }} />
+          <Bar dataKey="count" fill={`url(#${gradientId})`} radius={[8, 8, 3, 3]} maxBarSize={42} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Circular gauge for the average-battery figure (Device Health).
+function HealthRing({ value, label, chartTheme }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  const r = 62;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="hero-ring" role="img" aria-label={`${label}: ${value ?? "—"}%`}>
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <circle cx="75" cy="75" r={r} fill="none" stroke={chartTheme.ringTrack} strokeWidth="11" />
+        <circle
+          cx="75" cy="75" r={r} fill="none"
+          stroke={chartTheme.ringValue}
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeDasharray={`${(v / 100) * c} ${c}`}
+          style={{ transition: "stroke-dasharray 0.6s ease" }}
+        />
+      </svg>
+      <div className="hero-ring-label">
+        <strong>{value != null ? `${value}%` : "—"}</strong>
+        <span>{label}</span>
+      </div>
     </div>
   );
 }
@@ -3105,6 +3324,7 @@ function DashboardOverview({ token, user, onNavigate }) {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const chartTheme = useChartTheme();
 
   async function loadAll() {
     try {
@@ -3134,7 +3354,17 @@ function DashboardOverview({ token, user, onNavigate }) {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <section><h2>Dashboard</h2><p>Loading dashboard...</p></section>;
+  if (loading) {
+    return (
+      <section aria-busy="true">
+        <h2>Dashboard</h2>
+        <p className="dash-updated" style={{ marginBottom: "1rem" }}>Loading dashboard...</p>
+        <div className="dash-loading">
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton" />)}
+        </div>
+      </section>
+    );
+  }
   if (error) return <section><h2>Dashboard</h2><p className="error-text">{error}</p></section>;
 
   const deviceStatusData = charts ? [
@@ -3146,135 +3376,172 @@ function DashboardOverview({ token, user, onNavigate }) {
     { name: "Non-Compliant", value: charts.policy_compliance.non_compliant },
   ] : [];
 
+  const roleLabel = user.is_super_admin ? "Super Admin" : user.role === "DepartmentManager" ? "Department Manager" : "Organization Admin";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const onlinePct = percentOf(summary.online_devices, summary.total_devices);
+  const offlinePct = percentOf(summary.offline_devices, summary.total_devices);
+  const compliancePct = charts ? percentOf(charts.policy_compliance.compliant, (Number(charts.policy_compliance.compliant) || 0) + (Number(charts.policy_compliance.non_compliant) || 0)) : null;
+  const avgBattery = charts?.device_health?.avg_battery;
+
   return (
     <section>
       <div className="dash-header-row">
-        <div>
-          <h2 style={{ border: "none", margin: 0 }}>Welcome back, {user.name}</h2>
-          <p style={{ fontSize: "0.82rem", color: "var(--teal)", margin: "0.3rem 0 0", fontWeight: 600 }}>
-            {user.is_super_admin ? "Super Admin" : user.role === "DepartmentManager" ? "Department Manager" : "Organization Admin"}
-            {user.department_name ? ` · ${user.department_name}` : ""}
-            {!user.is_super_admin && user.organization_name ? ` · ${user.organization_name}` : ""}
+        <div className="dash-greeting">
+          <h2>{greeting}, {user.name}<IconSparkles size={20} className="greeting-spark" /></h2>
+          <p className="dash-role-line">
+            <span className="role-pill">{roleLabel}</span>
+            {user.department_name && <span>{user.department_name}</span>}
+            {!user.is_super_admin && user.organization_name && <span>· {user.organization_name}</span>}
           </p>
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
-            {lastUpdated && `Last updated ${lastUpdated.toLocaleTimeString()}`}
-          </p>
+          {lastUpdated && (
+            <p className="dash-updated" style={{ margin: "0.45rem 0 0" }}>
+              <IconClock size={13} /> Last updated {lastUpdated.toLocaleTimeString()} · auto-refreshes every minute
+            </p>
+          )}
         </div>
-        <button className="ghost-dark" onClick={loadAll}>Refresh</button>
+        <button className="ghost-dark" onClick={loadAll}><IconRefresh size={15} /> Refresh</button>
       </div>
 
       <div className="kpi-grid">
-        <KpiCard label="Total Devices" value={summary.total_devices} onClick={() => onNavigate("devices")} />
-        <KpiCard label="Online Devices" value={summary.online_devices} onClick={() => onNavigate("devices")} />
-        <KpiCard label="Offline Devices" value={summary.offline_devices} onClick={() => onNavigate("devices")} />
-        <KpiCard label="Active Policies" value={summary.active_policies} onClick={() => onNavigate("policies")} />
-        <KpiCard label="Policy Violations" value={summary.policy_violations} onClick={() => onNavigate("alerts")} />
-        <KpiCard label="Pending Commands" value={summary.pending_commands} onClick={() => onNavigate("activity")} />
-        <KpiCard label="Today's Alerts" value={summary.todays_alerts} onClick={() => onNavigate("alerts")} />
-        <KpiCard label="Organizations" value={summary.total_organizations} onClick={() => onNavigate("org")} />
+        <KpiCard label="Total Devices" value={summary.total_devices} icon={IconSmartphone} tone="violet" onClick={() => onNavigate("devices")} />
+        <KpiCard label="Online Devices" value={summary.online_devices} icon={IconWifi} tone="mint" hint={onlinePct != null ? `${onlinePct}% of fleet` : null} onClick={() => onNavigate("devices")} />
+        <KpiCard label="Offline Devices" value={summary.offline_devices} icon={IconWifiOff} tone="rose" hint={offlinePct != null ? `${offlinePct}% of fleet` : null} onClick={() => onNavigate("devices")} />
+        <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
+        <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("alerts")} />
+        <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("activity")} />
+        <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
+        <KpiCard label="Organizations" value={summary.total_organizations} icon={IconBuilding} tone="cyan" onClick={() => onNavigate("org")} />
       </div>
 
-      <div className="chart-grid">
-        <div className="chart-card">
-          <h4>Device Status</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={deviceStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
-                {deviceStatusData.map((entry, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+      <div className="dash-layout">
+        <div className="dash-main-col">
+          {/* Fleet overview hero — includes the Device Health (avg battery) figure */}
+          <div className="dash-hero">
+            <div>
+              <div className="hero-eyebrow"><IconActivity size={14} /> Fleet overview</div>
+              <h3>Your devices at a glance</h3>
+              <p>Live status of your managed fleet, refreshed automatically from CyberNest.</p>
+              <div className="hero-stats">
+                <div className="hero-stat">
+                  <strong>{summary.online_devices ?? "—"} / {summary.total_devices ?? "—"}</strong>
+                  <span>Devices online</span>
+                </div>
+                <div className="hero-stat">
+                  <strong>{compliancePct != null ? `${compliancePct}%` : "—"}</strong>
+                  <span>Policy compliant</span>
+                </div>
+                <div className="hero-stat">
+                  <strong>{summary.pending_commands ?? "—"}</strong>
+                  <span>Pending commands</span>
+                </div>
+              </div>
+              <div className="hero-actions">
+                <button className="hero-btn" onClick={() => onNavigate("devices")}>View devices <IconArrowRight size={15} /></button>
+                <button className="hero-link" onClick={() => onNavigate("reports")}>Reports</button>
+              </div>
+            </div>
+            <HealthRing value={avgBattery} label="Average battery across fleet" chartTheme={chartTheme} />
+          </div>
+
+          <div className="chart-grid">
+            <DonutChartCard
+              title="Device Status"
+              subtitle="Online vs offline right now"
+              data={deviceStatusData}
+              colors={chartTheme.series}
+              centerLabel="devices"
+            />
+            <DonutChartCard
+              title="Policy Compliance"
+              subtitle="Across assigned devices"
+              data={complianceData}
+              colors={chartTheme.series}
+              centerLabel="checked"
+            />
+            <BarChartCard
+              title="Android Versions"
+              subtitle="Devices per OS version"
+              data={charts.android_versions}
+              dataKeyX="version"
+              gradientId="cnBarAndroid"
+              gradient={chartTheme.barPrimary}
+              chartTheme={chartTheme}
+            />
+            <BarChartCard
+              title="Device Distribution (by Department)"
+              subtitle="Devices per department"
+              data={charts.device_distribution}
+              dataKeyX="department"
+              gradientId="cnBarDept"
+              gradient={chartTheme.barSecondary}
+              chartTheme={chartTheme}
+            />
+          </div>
         </div>
 
-        <div className="chart-card">
-          <h4>Policy Compliance</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={complianceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
-                {complianceData.map((entry, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <div className="dash-side-col">
+          <div className="dash-card">
+            <div className="card-header">
+              <div>
+                <h3>Security Alerts</h3>
+                <p className="card-subtitle">{alerts.length > 0 ? `${alerts.length} active` : "All clear"}</p>
+              </div>
+              <button className="card-link" onClick={() => onNavigate("alerts")}>View all</button>
+            </div>
+            {alerts.length === 0 && <p className="empty-state">No active alerts.</p>}
+            <div className="alert-scroll">
+              {alerts.slice(0, 8).map((a, i) => (
+                <div key={i} className="alert-card" style={{ marginBottom: "0.5rem" }}>
+                  <span className="alert-icon"><IconAlertTriangle size={16} /></span>
+                  <div>
+                    <div className="alert-title">{a.device}</div>
+                    <div className="alert-desc">{a.message}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        <div className="chart-card">
-          <h4>Android Versions</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={charts.android_versions}>
-              <XAxis dataKey="version" fontSize={11} />
-              <YAxis allowDecimals={false} fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#0F6E56" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="chart-card">
-          <h4>Device Distribution (by Department)</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={charts.device_distribution}>
-              <XAxis dataKey="department" fontSize={11} />
-              <YAxis allowDecimals={false} fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#1D2A44" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="chart-card">
-          <h4>Device Health</h4>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-            <div style={{ textAlign: "center" }}>
-              <div className="report-stat" style={{ fontSize: "2rem" }}>{charts.device_health.avg_battery}%</div>
-              <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Average battery across fleet</div>
+          <div className="dash-card">
+            <div className="card-header">
+              <h3>Quick Actions</h3>
+            </div>
+            <div className="quick-actions qa-tiles">
+              <button className="tone-violet" onClick={() => onNavigate("devices")}><span className="qa-icon"><IconSmartphone size={19} /></span>Enroll Device</button>
+              <button className="tone-mint" onClick={() => onNavigate("employees")}><span className="qa-icon"><IconUserPlus size={19} /></span>Add Employee</button>
+              <button className="tone-indigo" onClick={() => onNavigate("departments")}><span className="qa-icon"><IconShieldCheck size={19} /></span>Create Policy</button>
+              <button className="tone-rose" onClick={() => onNavigate("notifications")}><span className="qa-icon"><IconMegaphone size={19} /></span>Send Notification</button>
+              <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
+              <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="dash-two-col">
-        <div>
-          <h3 style={{ fontSize: "0.95rem" }}>Recent Activities</h3>
-          {activity.length === 0 && <p className="empty-state">No recent activity.</p>}
-          {activity.length > 0 && (
-            <table>
-              <thead><tr><th>Time</th><th>Activity</th><th>Device</th></tr></thead>
-              <tbody>
-                {activity.map((a) => (
-                  <tr key={a.id}>
-                    <td>{new Date(a.issued_at).toLocaleTimeString()}</td>
-                    <td>{a.command_type}</td>
-                    <td>{a.employee_name || a.device_uid}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <div className="dash-card">
+        <div className="card-header">
+          <div>
+            <h3>Recent Activities</h3>
+            <p className="card-subtitle">Latest commands issued to devices</p>
+          </div>
         </div>
-        <div>
-          <h3 style={{ fontSize: "0.95rem" }}>Security Alerts</h3>
-          {alerts.length === 0 && <p className="empty-state">No active alerts.</p>}
-          {alerts.slice(0, 8).map((a, i) => (
-            <div key={i} className="alert-card" style={{ marginBottom: "0.4rem" }}>
-              <div>
-                <div className="alert-title">{a.device}</div>
-                <div className="alert-desc">{a.message}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <h3 style={{ fontSize: "0.95rem" }}>Quick Actions</h3>
-      <div className="quick-actions">
-        <button onClick={() => onNavigate("devices")}>➕ Enroll Device</button>
-        <button onClick={() => onNavigate("employees")}>➕ Add Employee</button>
-        <button onClick={() => onNavigate("departments")}>📜 Create Policy</button>
-        <button onClick={() => onNavigate("notifications")}>📢 Send Notification</button>
-        <button onClick={loadAll}>🔄 Refresh Dashboard</button>
-        <button onClick={() => onNavigate("reports")}>📊 Generate Report</button>
+        {activity.length === 0 && <p className="empty-state">No recent activity.</p>}
+        {activity.length > 0 && (
+          <div className="table-scroll"><table>
+            <thead><tr><th>Time</th><th>Activity</th><th>Device</th></tr></thead>
+            <tbody>
+              {activity.map((a) => (
+                <tr key={a.id}>
+                  <td className="mono" style={{ color: "var(--text-muted)" }}>{new Date(a.issued_at).toLocaleTimeString()}</td>
+                  <td><span className="badge">{a.command_type}</span></td>
+                  <td>{a.employee_name || a.device_uid}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        )}
       </div>
     </section>
   );
@@ -3306,6 +3573,7 @@ function EnrollmentQrModal({ device, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ textAlign: "center" }}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Enrollment QR</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
           Enrollment code: <span className="mono">{device.device_uid}</span>
@@ -3361,7 +3629,7 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved, readOnly 
         <h4 style={{ margin: 0 }}>{device.model || "Unknown model"}</h4>
         <span className={`badge ${online ? "active" : "suspended"}`}>{online ? "ONLINE" : "OFFLINE"}</span>
       </div>
-      <table style={{ marginTop: "0.6rem", marginBottom: "0.8rem" }}>
+      <div className="table-scroll"><table style={{ marginTop: "0.6rem", marginBottom: "0.8rem" }}>
         <tbody>
           <tr><td>UID</td><td className="mono" style={{ textAlign: "right", fontSize: "0.72rem" }}>{device.device_uid}</td></tr>
           <tr><td>IMEI</td><td className="mono" style={{ textAlign: "right" }}>{device.imei || "—"}</td></tr>
@@ -3369,7 +3637,7 @@ function DeviceCard({ device, token, onView, onCommandSent, onRemoved, readOnly 
           <tr><td>Battery</td><td style={{ textAlign: "right" }}>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
           <tr><td>User</td><td style={{ textAlign: "right" }}>{device.assigned_employee_name || device.employee_name || "Unassigned"}</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div className="actions">
         <button onClick={() => onView(device.device_uid)}>View</button>
         {!readOnly && (
@@ -3872,7 +4140,7 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
       {error && <p className="error-text">{error}</p>}
       {!loading && commands.length === 0 && <p className="empty-state">No commands in this category.</p>}
       {!loading && commands.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>ID</th><th>Command</th><th>Device</th><th>Employee</th><th>Sent By</th><th>Sent Time</th><th>Status</th>{!isSuperAdmin && <th>Actions</th>}</tr>
           </thead>
@@ -3898,7 +4166,7 @@ function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 30 && (
@@ -3997,7 +4265,7 @@ function ComplianceView({ token, organizationId, isSuperAdmin, showToast }) {
       {error && <p className="error-text">{error}</p>}
       {!loading && rows.length === 0 && <p className="empty-state">No devices with a policy assignment yet.</p>}
       {!loading && rows.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>Device</th><th>Employee</th><th>Department</th><th>Policy</th><th>Version</th><th>Status</th><th>Last Sync</th><th>Actions</th></tr>
           </thead>
@@ -4017,7 +4285,7 @@ function ComplianceView({ token, organizationId, isSuperAdmin, showToast }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 30 && (
@@ -4056,6 +4324,7 @@ function ApplicationFormModal({ initial, token, organizationId, onClose, onSaved
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>{initial ? "Edit Application" : "Add Application"}</h3>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>Application Name *</label>
@@ -4129,6 +4398,7 @@ function ApplicationAssignModal({ app, token, organizationId, onClose, showToast
   return (
     <div className="modal-overlay" onClick={() => onClose(false)}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={() => onClose(false)}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Assign "{app.name}"</h3>
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
           <button type="button" className={mode === "device" ? "" : "ghost-dark"} onClick={() => setMode("device")}>📱 To Device</button>
@@ -4206,6 +4476,7 @@ function UploadApkModal({ token, organizationId, onClose, showToast }) {
   return (
     <div className="modal-overlay" onClick={() => onClose(false)}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={() => onClose(false)}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Upload APK</h3>
         <form onSubmit={handleSubmit} className="modal-form">
           <div
@@ -4320,6 +4591,7 @@ function InstallApkModal({ pkg, token, organizationId, onClose, showToast }) {
   return (
     <div className="modal-overlay" onClick={() => onClose(status === "executed")}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={() => onClose(status === "executed")}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Install "{pkg.app_name}"</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
           Pushes a silent install command to the device — no user confirmation needed, since it's already Device Owner managed.
@@ -4475,7 +4747,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
       {error && <p className="error-text">{error}</p>}
       {!loading && apps.length === 0 && <p className="empty-state">No applications registered yet.</p>}
       {!loading && apps.length > 0 && (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>Name</th><th>Package</th><th>Version</th><th>Category</th><th>Install Type</th><th>Assigned</th><th>Installed</th><th>Status</th><th>Actions</th></tr>
           </thead>
@@ -4499,7 +4771,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {total > 20 && (
@@ -4520,7 +4792,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
       {apkPackages.length === 0 ? (
         <p className="empty-state">No APKs uploaded yet.</p>
       ) : (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>App</th><th>Package</th><th>Version</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr>
           </thead>
@@ -4539,7 +4811,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       <div className="dash-header-row" style={{ marginTop: "2rem" }}>
@@ -4549,7 +4821,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
       {installHistory.length === 0 ? (
         <p className="empty-state">No installs recorded yet.</p>
       ) : (
-        <table>
+        <div className="table-scroll"><table>
           <thead>
             <tr><th>App</th><th>Device</th><th>Installed By</th><th>When</th></tr>
           </thead>
@@ -4563,7 +4835,7 @@ function ApplicationsView({ token, organizationId, showToast }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {showFormModal && (
@@ -4662,6 +4934,16 @@ function SettingsView({ token, organizationId, policies, showToast }) {
     <section>
       <h2>System Settings</h2>
 
+      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+        <div className="appearance-row">
+          <div>
+            <h3 style={{ fontSize: "0.95rem", margin: 0 }}>Appearance</h3>
+            <p>Choose the dashboard theme. Your choice is saved on this browser.</p>
+          </div>
+          <ThemeSegmented />
+        </div>
+      </div>
+
       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1.2rem" }}>
         Organization name & branding are managed under <strong>Organization</strong>. API keys are under <strong>Profile</strong>.
       </p>
@@ -4743,14 +5025,14 @@ function SettingsView({ token, organizationId, policies, showToast }) {
       <div className="policy-panel">
         <h3 style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>About System — Health</h3>
         {health && (
-          <table>
+          <div className="table-scroll"><table>
             <tbody>
               <tr><td>Database</td><td style={{ textAlign: "right" }}><span className={`badge ${health.database === "Healthy" ? "active" : "suspended"}`}>{health.database}</span></td></tr>
               <tr><td>API Server</td><td style={{ textAlign: "right" }}><span className="badge active">{health.api_server}</span></td></tr>
               <tr><td>Notification Service (FCM)</td><td style={{ textAlign: "right" }}><span className={`badge ${health.notification_service === "Connected" ? "active" : "suspended"}`}>{health.notification_service}</span></td></tr>
               <tr><td>Server Time</td><td style={{ textAlign: "right" }}>{new Date(health.server_time).toLocaleString()}</td></tr>
             </tbody>
-          </table>
+          </table></div>
         )}
         <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.6rem" }}>
           CyberNest MDM — Enrollment, Policy, Command, and Compliance modules are functional and covered elsewhere in this dashboard.
@@ -4871,48 +5153,70 @@ function Dashboard({ token, user, onLogout }) {
 
   const roleName = user.is_super_admin ? "SuperAdmin" : user.role;
 
+  // Same keys, order and role visibility as before — only the visual label
+  // (emoji → icon) and a display-only section grouping were added.
   const allNavItems = [
-    { key: "overview", label: "📊 Dashboard", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
-    { key: "org", label: `🏢 ${user.is_super_admin ? "Organizations" : "Organization"}`, roles: ["SuperAdmin", "OrganizationAdmin"] },
-    { key: "departments", label: "🗂️ Departments", roles: ["SuperAdmin", "OrganizationAdmin"] },
-    { key: "employees", label: "👤 Employees", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
-    { key: "devices", label: "📱 Devices", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
-    { key: "policies", label: "📜 Policies", roles: ["SuperAdmin", "OrganizationAdmin"] },
-    { key: "activity", label: "📜 Audit Logs", roles: ["SuperAdmin", "OrganizationAdmin"] },
-    { key: "commands", label: "⚡ Commands", roles: ["OrganizationAdmin", "DepartmentManager"] },
-    { key: "compliance", label: "✅ Compliance", roles: ["OrganizationAdmin", "DepartmentManager"] },
-    { key: "applications", label: "📦 Applications", roles: ["OrganizationAdmin"] },
-    { key: "alerts", label: "🚨 Alerts", roles: ["OrganizationAdmin", "DepartmentManager"] },
-    { key: "notifications", label: "📢 Notifications", roles: ["OrganizationAdmin", "DepartmentManager"] },
-    { key: "reports", label: "📈 Reports", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
-    { key: "profile", label: "⚙️ Profile", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
-    { key: "settings", label: "🔧 Settings", roles: ["OrganizationAdmin"] },
+    { key: "overview", label: "Dashboard", icon: IconDashboard, section: "Overview", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "org", label: `${user.is_super_admin ? "Organizations" : "Organization"}`, icon: IconBuilding, section: "Management", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "departments", label: "Departments", icon: IconFolder, section: "Management", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "employees", label: "Employees", icon: IconUsers, section: "Management", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "devices", label: "Devices", icon: IconSmartphone, section: "Management", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "policies", label: "Policies", icon: IconShieldCheck, section: "Security", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "activity", label: "Audit Logs", icon: IconScroll, section: "Security", roles: ["SuperAdmin", "OrganizationAdmin"] },
+    { key: "commands", label: "Commands", icon: IconZap, section: "Security", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "compliance", label: "Compliance", icon: IconCheckCircle, section: "Security", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "applications", label: "Applications", icon: IconPackage, section: "Security", roles: ["OrganizationAdmin"] },
+    { key: "alerts", label: "Alerts", icon: IconAlertTriangle, section: "Monitoring", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "notifications", label: "Notifications", icon: IconMegaphone, section: "Monitoring", roles: ["OrganizationAdmin", "DepartmentManager"] },
+    { key: "reports", label: "Reports", icon: IconBarChart, section: "Monitoring", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "profile", label: "Profile", icon: IconUser, section: "Account", roles: ["SuperAdmin", "OrganizationAdmin", "DepartmentManager"] },
+    { key: "settings", label: "Settings", icon: IconSettings, section: "Account", roles: ["OrganizationAdmin"] },
   ];
   const visibleNavItems = allNavItems.filter((item) => item.roles.includes(roleName));
+  const roleLabel = user.is_super_admin ? "Super Admin" : user.role === "DepartmentManager" ? "Department Manager" : "Organization Admin";
+  const userInitials = (user.name || user.email || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <h1 className="sidebar-logo">Cyber<span style={{color: "var(--teal)"}}>Nest</span></h1>
-        <nav className="sidebar-nav">
-          {visibleNavItems.map((item) => (
-            <button key={item.key} className={page === item.key ? "active" : ""} onClick={() => setPage(item.key)}>{item.label}</button>
-          ))}
-        </nav>
-      </aside>
+      <Sidebar
+        items={visibleNavItems}
+        activeKey={page}
+        onNavigate={setPage}
+        userName={user.name}
+        roleLabel={roleLabel}
+        userInitials={userInitials}
+      />
 
       <div className="main-area">
         <header className="top-header">
-          <input
-            type="text"
-            className="global-search"
-            placeholder="Search devices, employees, departments, policies..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
+          <div className="search-wrap">
+            <IconSearch size={17} className="search-icon" />
+            <input
+              type="text"
+              className="global-search"
+              placeholder="Search devices, employees, departments, policies..."
+              aria-label="Search devices, employees, departments, policies"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
           <div className="topbar-right">
-            <span>{user.name}</span>
-            <button className="ghost-dark" onClick={onLogout}>Sign out</button>
+            <ThemeToggle />
+            <div className="user-chip" title={`${user.name} · ${roleLabel}`}>
+              <span className="avatar" aria-hidden="true">{userInitials}</span>
+              <div className="user-meta">
+                <span className="user-name">{user.name}</span>
+                <span className="user-role">{roleLabel}</span>
+              </div>
+            </div>
+            <button className="ghost-dark signout-btn" onClick={onLogout} aria-label="Sign out" title="Sign out">
+              <IconLogOut size={16} /><span>Sign out</span>
+            </button>
           </div>
 
           {searchResults && (

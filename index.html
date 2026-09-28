@@ -1,9 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0E0A1F" />
     <title>CyberNest Admin</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of the
+      // wrong theme. Mirrors readStoredTheme() in src/theme.jsx.
+      (function () {
+        var theme = "dark";
+        try {
+          var saved = localStorage.getItem("cybernest-theme");
+          if (saved === "light" || saved === "dark") theme = saved;
+        } catch (e) {}
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
