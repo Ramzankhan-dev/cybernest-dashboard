@@ -1,11 +1,9 @@
-// Sidebar with an expanded / collapsed (icon-only) state and collapsible
-// navigation groups.
+// Sidebar with an expanded / collapsed (icon-only) state, collapsible
+// navigation groups, and an off-canvas drawer on phones.
 //
 // Navigation items, their labels and role filtering come from
 // config/navigation.js (via MainLayout) — this component only arranges the
-// items it receives, so role-based visibility is unchanged. Grouping is
-// purely visual: a child is only shown if the caller passed it in, and any
-// item not listed in NAV_LAYOUT is still rendered as a standalone entry.
+// items it receives, so role-based visibility is unchanged.
 // Persisted state (collapsed, open groups) lives in hooks/useSidebar.js.
 
 import { useEffect, useRef, useState } from "react";
@@ -42,8 +40,6 @@ export default function Sidebar({ items, activeKey, onNavigate, mobileOpen, onMo
     if (GROUP_OF[activeKey]) initial.add(GROUP_OF[activeKey]);
     return initial;
   });
-  // Tooltip (standalone items) and flyout (groups) are position:fixed so the
-  // sidebar's own scroll container can't clip them. Only used while collapsed.
   const [tip, setTip] = useState(null);
   const [flyout, setFlyout] = useState(null); // { id, top, left }
   const closeTimer = useRef(null);
@@ -51,7 +47,6 @@ export default function Sidebar({ items, activeKey, onNavigate, mobileOpen, onMo
   const nav = buildNav(items);
   const activeGroup = GROUP_OF[activeKey];
 
-  // Active page always opens its parent group.
   useEffect(() => {
     if (!activeGroup) return;
     setOpenGroups((prev) => (prev.has(activeGroup) ? prev : new Set(prev).add(activeGroup)));
@@ -67,7 +62,6 @@ export default function Sidebar({ items, activeKey, onNavigate, mobileOpen, onMo
 
   useEffect(() => { if (!collapsed) { setTip(null); setFlyout(null); } }, [collapsed]);
 
-  // Close the flyout on Escape or a click outside it.
   useEffect(() => {
     if (!flyout) return;
     function onKey(e) { if (e.key === "Escape") setFlyout(null); }
@@ -134,126 +128,143 @@ export default function Sidebar({ items, activeKey, onNavigate, mobileOpen, onMo
   const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
   return (
-    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`} onScroll={() => { hideTip(); setFlyout(null); }}>
-      <div className="sidebar-brand">
-        <BrandMark size={38} />
-        <div className="sidebar-brand-text">
-          <h1 className="sidebar-logo">Cyber<span className="brand-accent">Nest</span></h1>
-          <span className="brand-tagline">MDM Console</span>
+    <>
+      <div
+        className={`sidebar-backdrop ${mobileOpen ? "is-open" : ""}`}
+        onClick={onMobileClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={`sidebar ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-mobile-open" : ""}`.trim()}
+        onScroll={() => { hideTip(); setFlyout(null); }}
+      >
+        <div className="sidebar-brand">
+          <BrandMark size={38} />
+          <div className="sidebar-brand-text">
+            <h1 className="sidebar-logo">Cyber<span className="brand-accent">Nest</span></h1>
+            <span className="brand-tagline">MDM Console</span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={toggleLabel}
+            aria-expanded={!collapsed}
+            title={toggleLabel}
+          >
+            {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
+          </button>
+          <button
+            type="button"
+            className="sidebar-close"
+            onClick={onMobileClose}
+            aria-label="Close menu"
+          >
+            <IconX size={18} />
+          </button>
         </div>
-        <button
-          type="button"
-          className="sidebar-toggle"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label={toggleLabel}
-          aria-expanded={!collapsed}
-          title={toggleLabel}
-        >
-          {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
-        </button>
-      </div>
 
-      <nav className="sidebar-nav" aria-label="Main navigation">
-        {nav.map((entry) => {
-          if (entry.type === "item") return renderItem(entry.item);
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {nav.map((entry) => {
+            if (entry.type === "item") return renderItem(entry.item);
 
-          const { group, children } = entry;
-          const GroupIcon = group.icon;
-          const isOpen = openGroups.has(group.id);
-          const hasActive = children.some((c) => c.key === activeKey);
-          const panelId = `nav-group-${group.id}`;
-          const flyoutOpen = collapsed && flyout?.id === group.id;
+            const { group, children } = entry;
+            const GroupIcon = group.icon;
+            const isOpen = openGroups.has(group.id);
+            const hasActive = children.some((c) => c.key === activeKey);
+            const panelId = `nav-group-${group.id}`;
+            const flyoutOpen = collapsed && flyout?.id === group.id;
 
-          return (
-            <div
-              key={group.id}
-              className={`nav-group ${isOpen ? "is-open" : ""} ${hasActive ? "has-active" : ""}`.trim()}
-              onMouseLeave={collapsed ? scheduleFlyoutClose : undefined}
-              onMouseEnter={collapsed ? cancelFlyoutClose : undefined}
-            >
-              <button
-                type="button"
-                className={`nav-group-header ${collapsed && hasActive ? "active" : ""}`.trim()}
-                aria-expanded={collapsed ? flyoutOpen : isOpen}
-                aria-controls={collapsed ? undefined : panelId}
-                aria-haspopup={collapsed ? "menu" : undefined}
-                aria-label={collapsed ? `${group.label} menu` : undefined}
-                onClick={(e) => {
-                  if (collapsed && !isMobile()) {
-                    if (flyoutOpen) setFlyout(null); else openFlyout(e, group.id);
-                  } else {
-                    toggleGroup(group.id);
-                  }
-                }}
-                onMouseEnter={(e) => openFlyout(e, group.id)}
+            return (
+              <div
+                key={group.id}
+                className={`nav-group ${isOpen ? "is-open" : ""} ${hasActive ? "has-active" : ""}`.trim()}
+                onMouseLeave={collapsed ? scheduleFlyoutClose : undefined}
+                onMouseEnter={collapsed ? cancelFlyoutClose : undefined}
               >
-                <GroupIcon size={18} className="nav-icon" />
-                <span className="nav-label">{group.label}</span>
-                <span className="nav-group-chevron" aria-hidden="true">
-                  {isOpen ? <IconChevronDown size={15} /> : <IconChevronRight size={15} />}
-                </span>
-              </button>
-
-              {/* Inline children (sidebar expanded; flattened on mobile) */}
-              <div className="nav-group-children" id={panelId} role="group" aria-label={group.label}>
-                <div className="nav-group-inner">
-                  {children.map((child) => renderItem(child, "nav-child"))}
-                </div>
-              </div>
-
-              {/* Flyout (sidebar collapsed / icon-only) */}
-              {flyoutOpen && (
-                <div
-                  className="nav-flyout"
-                  role="menu"
-                  aria-label={group.label}
-                  style={{ top: flyout.top, left: flyout.left }}
-                  onMouseEnter={cancelFlyoutClose}
-                  onMouseLeave={scheduleFlyoutClose}
+                <button
+                  type="button"
+                  className={`nav-group-header ${collapsed && hasActive ? "active" : ""}`.trim()}
+                  aria-expanded={collapsed ? flyoutOpen : isOpen}
+                  aria-controls={collapsed ? undefined : panelId}
+                  aria-haspopup={collapsed ? "menu" : undefined}
+                  aria-label={collapsed ? `${group.label} menu` : undefined}
+                  onClick={(e) => {
+                    if (collapsed && !isMobile()) {
+                      if (flyoutOpen) setFlyout(null); else openFlyout(e, group.id);
+                    } else {
+                      toggleGroup(group.id);
+                    }
+                  }}
+                  onMouseEnter={(e) => openFlyout(e, group.id)}
                 >
-                  <div className="nav-flyout-title">{group.label}</div>
-                  {children.map((child) => {
-                    const ChildIcon = child.icon;
-                    return (
-                      <button
-                        key={child.key}
-                        type="button"
-                        role="menuitem"
-                        className={`nav-flyout-item ${activeKey === child.key ? "active" : ""}`.trim()}
-                        aria-current={activeKey === child.key ? "page" : undefined}
-                        onClick={() => navigate(child.key)}
-                      >
-                        <ChildIcon size={16} className="nav-icon" />
-                        <span>{child.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
+                  <GroupIcon size={18} className="nav-icon" />
+                  <span className="nav-label">{group.label}</span>
+                  <span className="nav-group-chevron" aria-hidden="true">
+                    {isOpen ? <IconChevronDown size={15} /> : <IconChevronRight size={15} />}
+                  </span>
+                </button>
 
-      <div className="sidebar-footer">
-        <div
-          className="sidebar-user"
-          onMouseEnter={(e) => showTip(e, `${userName} · ${roleLabel}`)}
-          onMouseLeave={hideTip}
-        >
-          <span className="avatar" aria-hidden="true">{userInitials}</span>
-          <div className="user-meta">
-            <span className="user-name">{userName}</span>
-            <span className="user-role">{roleLabel}</span>
+                <div className="nav-group-children" id={panelId} role="group" aria-label={group.label}>
+                  <div className="nav-group-inner">
+                    {children.map((child) => renderItem(child, "nav-child"))}
+                  </div>
+                </div>
+
+                {flyoutOpen && (
+                  <div
+                    className="nav-flyout"
+                    role="menu"
+                    aria-label={group.label}
+                    style={{ top: flyout.top, left: flyout.left }}
+                    onMouseEnter={cancelFlyoutClose}
+                    onMouseLeave={scheduleFlyoutClose}
+                  >
+                    <div className="nav-flyout-title">{group.label}</div>
+                    {children.map((child) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <button
+                          key={child.key}
+                          type="button"
+                          role="menuitem"
+                          className={`nav-flyout-item ${activeKey === child.key ? "active" : ""}`.trim()}
+                          aria-current={activeKey === child.key ? "page" : undefined}
+                          onClick={() => navigate(child.key)}
+                        >
+                          <ChildIcon size={16} className="nav-icon" />
+                          <span>{child.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div
+            className="sidebar-user"
+            onMouseEnter={(e) => showTip(e, `${userName} · ${roleLabel}`)}
+            onMouseLeave={hideTip}
+          >
+            <span className="avatar" aria-hidden="true">{userInitials}</span>
+            <div className="user-meta">
+              <span className="user-name">{userName}</span>
+              <span className="user-role">{roleLabel}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {collapsed && tip && (
-        <div className="sidebar-tooltip" role="tooltip" style={{ top: tip.top, left: tip.left }}>
-          {tip.label}
-        </div>
-      )}
-    </aside>
+        {collapsed && tip && (
+          <div className="sidebar-tooltip" role="tooltip" style={{ top: tip.top, left: tip.left }}>
+            {tip.label}
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
