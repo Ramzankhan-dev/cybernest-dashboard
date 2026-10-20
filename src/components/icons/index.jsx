@@ -1,6 +1,6 @@
+import logoIcon from "../../../cybernest-icon.png";
 // Lightweight inline SVG icon set (stroke icons, 24x24 grid, inherit
 // currentColor). Kept local so the redesign adds no new dependencies.
-
 function Svg({ children, size = 18, className = "", strokeWidth = 1.8, ...rest }) {
   return (
     <svg
@@ -259,34 +259,19 @@ export const IconLock = (p) => (
   </Svg>
 );
 
-// CyberNest brand mark — a shield with a nested core. Gradient stops read
-// theme tokens so the mark re-colors itself with the active theme.
+
+// CyberNest brand mark — uses the official logo icon.
 export function BrandMark({ size = 36, className = "" }) {
   return (
-    <svg
+    <img
+      src={logoIcon}
       width={size}
       height={size}
-      viewBox="0 0 40 40"
+      alt=""
       aria-hidden="true"
-      focusable="false"
+      draggable="false"
       className={`brand-mark ${className}`.trim()}
-    >
-      <defs>
-        <linearGradient id="cnBrandGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" style={{ stopColor: "var(--brand-from)" }} />
-          <stop offset="100%" style={{ stopColor: "var(--brand-to)" }} />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="40" height="40" rx="12" fill="url(#cnBrandGrad)" />
-      <path
-        d="M20 8.5c2.6 1.9 5.4 2.9 8.5 3.1v7.1c0 5.6-3.5 9.6-8.5 11.8-5-2.2-8.5-6.2-8.5-11.8v-7.1c3.1-.2 5.9-1.2 8.5-3.1Z"
-        fill="none"
-        stroke="var(--brand-ink)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <circle cx="20" cy="19.5" r="3.2" fill="var(--brand-ink)" />
-    </svg>
+    />
   );
 }
 
@@ -313,5 +298,10 @@ export const IconLayers = (p) => (
     <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
     <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
     <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
+  </Svg>
+);
+export const IconMenu = (p) => (
+  <Svg {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
   </Svg>
 );

@@ -21,6 +21,7 @@ export default function MainLayout({ token, user, onLogout }) {
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
   const [policies, setPolicies] = useState([]);
+  const [navOpen, setNavOpen] = useState(false);
 
   async function loadPolicies() {
     try {
@@ -56,6 +57,17 @@ export default function MainLayout({ token, user, onLogout }) {
     loadPolicies();
   }, []);
 
+  // Mobile drawer: Escape se band ho, aur khula ho to page scroll lock rahe.
+  useEffect(() => {
+    document.body.style.overflow = navOpen ? "hidden" : "";
+    const onKey = (e) => { if (e.key === "Escape") setNavOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [navOpen]);
+
   function showToast(message, isError = false) {
     setToast({ message, isError });
     setTimeout(() => setToast(null), 3500);
@@ -70,14 +82,23 @@ export default function MainLayout({ token, user, onLogout }) {
       <Sidebar
         items={visibleNavItems}
         activeKey={page}
-        onNavigate={setPage}
+        onNavigate={(key) => { setPage(key); setNavOpen(false); }}
+        mobileOpen={navOpen}
+        onMobileClose={() => setNavOpen(false)}
         userName={user.name}
         roleLabel={roleLabel}
         userInitials={userInitials}
       />
 
       <div className="main-area">
-        <Header token={token} user={user} roleLabel={roleLabel} userInitials={userInitials} onLogout={onLogout} />
+        <Header
+          token={token}
+          user={user}
+          roleLabel={roleLabel}
+          userInitials={userInitials}
+          onLogout={onLogout}
+          onMenuClick={() => setNavOpen(true)}
+        />
         <AppRoutes
           page={page}
           setPage={setPage}

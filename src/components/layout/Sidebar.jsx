@@ -9,7 +9,7 @@
 // Persisted state (collapsed, open groups) lives in hooks/useSidebar.js.
 
 import { useEffect, useRef, useState } from "react";
-import { BrandMark, IconChevronLeft, IconChevronRight, IconChevronDown } from "../icons";
+import { BrandMark, IconChevronLeft, IconChevronRight, IconChevronDown, IconX } from "../icons";
 import { NAV_LAYOUT, GROUP_OF } from "../../config/navigation";
 import { SIDEBAR_GROUPS_STORAGE_KEY } from "../../config/constants";
 import { useSidebarCollapsed, readOpenGroups } from "../../hooks/useSidebar";
@@ -35,7 +35,7 @@ function buildNav(items) {
 
 const isMobile = () => window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
 
-export default function Sidebar({ items, activeKey, onNavigate, userName, roleLabel, userInitials }) {
+export default function Sidebar({ items, activeKey, onNavigate, mobileOpen, onMobileClose, userName, roleLabel, userInitials }) {
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const [openGroups, setOpenGroups] = useState(() => {
     const initial = new Set(readOpenGroups());

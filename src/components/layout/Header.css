@@ -126,3 +126,22 @@
 .user-role { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
 
 button.signout-btn { border-radius: 999px; padding: 0.45rem 0.95rem; }
+.menu-btn,
+.header-brand-mark { display: none; }
+
+@media (max-width: 640px) {
+  button.menu-btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    box-shadow: none;
+  }
+  .header-brand-mark { display: block; width: 32px; height: 32px; }
+}

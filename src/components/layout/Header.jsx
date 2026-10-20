@@ -2,10 +2,10 @@
 // signed-in user chip and Sign out.
 import { useState } from "react";
 import { ThemeToggle } from "../common/ThemeToggle";
-import { IconLogOut, IconSearch } from "../icons";
+import { BrandMark, IconLogOut, IconSearch, IconMenu } from "../icons";
 import { globalSearch } from "../../services/searchService";
 
-export default function Header({ token, user, roleLabel, userInitials, onLogout }) {
+export default function Header({ token, user, roleLabel, userInitials, onLogout, onMenuClick }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
 
@@ -25,6 +25,11 @@ export default function Header({ token, user, roleLabel, userInitials, onLogout 
 
   return (
     <header className="top-header">
+      <button type="button" className="menu-btn" onClick={onMenuClick} aria-label="Open menu">
+        <IconMenu size={20} />
+      </button>
+      <BrandMark size={32} className="header-brand-mark" />
+
       <div className="search-wrap">
         <IconSearch size={17} className="search-icon" />
         <input

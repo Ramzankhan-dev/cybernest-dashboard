@@ -92,28 +92,6 @@ export function ProfileView({ token, user }) {
         {pwMessage && <p style={{ color: "var(--teal)", fontSize: "0.85rem", marginTop: "0.5rem" }}>{pwMessage}</p>}
         {pwError && <p className="error-text">{pwError}</p>}
       </div>
-
-      <div className="policy-panel">
-        <h3 style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>API keys</h3>
-        <button className="ghost-dark" onClick={handleGenerateKey} disabled={keyLoading}>
-          {keyLoading ? "Generating..." : "+ Generate new key"}
-        </button>
-        {newKey && (
-          <p className="generated-code" style={{ marginTop: "0.8rem" }}>
-            New key (copy it now — it won't be shown again): <span className="mono">{newKey}</span>
-          </p>
-        )}
-        {apiKeys.length > 0 && (
-          <ul className="policy-list" style={{ marginTop: "1rem" }}>
-            {apiKeys.map((k) => (
-              <li key={k.id}>
-                <span className="mono">{k.key_prefix}...</span>
-                <span className="policy-flags">{new Date(k.created_at).toLocaleDateString()}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </section>
   );
 }
