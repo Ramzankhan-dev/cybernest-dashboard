@@ -68,7 +68,7 @@ export function OrganizationsAdminView({ token }) {
       setError(`Cannot delete "${org.name}" — it still has ${blockers.join(", ")}. Remove or reassign them first.`);
       return;
     }
-    if (!window.confirm(`Delete "${org.name}"? Its dashboard users will lose access immediately. This cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${org.name}"?\n\nThis will permanently remove the organization and its dashboard users from the database. This cannot be undone.`)) return;
     setError("");
     try {
       await deleteOrganization(token, org.id);
