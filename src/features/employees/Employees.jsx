@@ -6,6 +6,7 @@ import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { PASSWORD_HINT, passwordRuleError } from "../../utils/passwordRules";
+import { EditEmployeeModal } from "./EditEmployeeModal";
 import { SetPasswordModal } from "./SetPasswordModal";
 import {
   assignEmployeeDevice,
@@ -100,6 +101,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
   const [availableDevices, setAvailableDevices] = useState([]);
   const [acting, setActing] = useState(null);
   const [passwordModalEmployee, setPasswordModalEmployee] = useState(null);
+  const [editingEmployee, setEditingEmployee] = useState(null);
 
   function clearFieldError(field) {
     setFieldErrors((prev) => {
@@ -260,12 +262,16 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
   }
 
   async function handleDelete(employee) {
+    if (employee.device_uid) {
+      window.alert("Please unassign the employee's device before deleting this employee.");
+      return;
+    }
     if (!window.confirm(`Delete employee "${employee.name}"?`)) return;
     try {
       await deleteEmployee(token, employee.id);
       load();
     } catch (err) {
-      setError(err.message);
+      window.alert(err.message);
     }
   }
 
@@ -449,6 +455,9 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
                     <button disabled={acting !== null} onClick={() => handleToggleStatus(e)}>
                       {e.status === "active" ? "Suspend" : "Reinstate"}
                     </button>
+                    {canCreateEmployees && (
+                      <button disabled={acting !== null} onClick={() => setEditingEmployee(e)}>Edit</button>
+                    )}
                     <button disabled={acting !== null} onClick={() => setPasswordModalEmployee(e)}>Set Password</button>
                     {canCreateEmployees && (
                       <button className="danger" disabled={acting !== null} onClick={() => handleDelete(e)}>Delete</button>
@@ -469,6 +478,14 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
         </div>
       )}
 
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          token={token}
+          onClose={() => setEditingEmployee(null)}
+          onSaved={() => { setEditingEmployee(null); load(); }}
+        />
+      )}
       {passwordModalEmployee && (
         <SetPasswordModal
           employee={passwordModalEmployee}

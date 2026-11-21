@@ -11,7 +11,7 @@ import {
 import { AppsPanel } from "./DeviceApps";
 import { HistoryPanel } from "./DeviceCommandHistory";
 import { LocationPanel } from "./DeviceLocation";
-import { isDeviceOnline } from "./deviceUtils";
+import { enrollmentTypeLabel, isDeviceOnline } from "./deviceUtils";
 
 export function DeviceDetailsView({ device, token, policies, onCommandSent, onClose, readOnly }) {
   const [tab, setTab] = useState("general");
@@ -123,7 +123,11 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
           <div className="table-scroll"><table style={{ marginBottom: "1.2rem" }}>
             <tbody>
               <tr><td><strong>Assigned User</strong></td><td>{userName || "Unassigned"}</td></tr>
+              {device.assigned_employee_email && <tr><td><strong>User email</strong></td><td>{device.assigned_employee_email}</td></tr>}
+              {device.assigned_employee_phone && <tr><td><strong>User phone</strong></td><td>{device.assigned_employee_phone}</td></tr>}
+              {device.assigned_employee_designation && <tr><td><strong>User designation</strong></td><td>{device.assigned_employee_designation}</td></tr>}
               <tr><td><strong>Department</strong></td><td>{device.department_name || "Unassigned"}</td></tr>
+              <tr><td><strong>Enrollment</strong></td><td>{enrollmentTypeLabel(device)}{device.enrollment_profile_name ? ` — ${device.enrollment_profile_name}` : ""}</td></tr>
               <tr><td><strong>Manufacturer</strong></td><td>{device.manufacturer || "—"}</td></tr>
               <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
               <tr><td><strong>Device ID</strong></td><td className="mono">{device.device_identifier || "—"}</td></tr>

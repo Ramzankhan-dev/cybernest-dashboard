@@ -4,7 +4,7 @@ import { useState } from "react";
 import { sendCommand } from "../commands/commandService";
 import { EnrollmentQrModal } from "./EnrollmentQrModal";
 import { removeDevice } from "./deviceService";
-import { isDeviceOnline } from "./deviceUtils";
+import { enrollmentTypeLabel, isDeviceOnline } from "./deviceUtils";
 
 export function DeviceCard({ device, token, onView, onCommandSent, onRemoved, readOnly }) {
   const online = isDeviceOnline(device);
@@ -48,6 +48,7 @@ export function DeviceCard({ device, token, onView, onCommandSent, onRemoved, re
           <tr><td>IMEI</td><td className="mono" style={{ textAlign: "right" }}>{device.imei || "—"}</td></tr>
           <tr><td>Android</td><td style={{ textAlign: "right" }}>{device.android_version || "—"}</td></tr>
           <tr><td>Battery</td><td style={{ textAlign: "right" }}>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
+          <tr><td>Enrollment</td><td style={{ textAlign: "right" }}><span className={`badge ${enrollmentTypeLabel(device) === "Profile Enrollment" ? "active" : "setup"}`}>{enrollmentTypeLabel(device)}</span></td></tr>
           <tr><td>User</td><td style={{ textAlign: "right" }}>{device.assigned_employee_name || device.employee_name || "Unassigned"}</td></tr>
         </tbody>
       </table></div>
