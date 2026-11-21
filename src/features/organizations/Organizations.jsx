@@ -57,7 +57,19 @@ export function OrganizationsAdminView({ token }) {
   }
 
   async function handleDelete(org) {
-    if (!window.confirm(`Delete "${org.name}"? This cannot be undone (blocked if it still has devices).`)) return;
+    const devices = Number(org.device_count) || 0;
+    const managers = Number(org.manager_count) || 0;
+    const employees = Math.max((Number(org.employee_count) || 0) - managers, 0);
+    const blockers = [];
+    if (devices > 0) blockers.push(`${devices} device${devices === 1 ? "" : "s"}`);
+    if (employees > 0) blockers.push(`${employees} employee${employees === 1 ? "" : "s"}`);
+    if (managers > 0) blockers.push(`${managers} manager${managers === 1 ? "" : "s"}`);
+    if (blockers.length > 0) {
+      setError(`Cannot delete "${org.name}" — it still has ${blockers.join(", ")}. Remove or reassign them first.`);
+      return;
+    }
+    if (!window.confirm(`Delete "${org.name}"? Its dashboard users will lose access immediately. This cannot be undone.`)) return;
+    setError("");
     try {
       await deleteOrganization(token, org.id);
       load();

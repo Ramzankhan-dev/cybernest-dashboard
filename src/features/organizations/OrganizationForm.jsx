@@ -63,8 +63,10 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
   function validate() {
     const errors = {};
     const email = (form.email || "").trim();
-    if (!email) errors.email = "Email is required";
-    else if (!EMAIL_REGEX.test(email)) errors.email = "Enter a valid email, e.g. name@example.com";
+    if (!isEdit) {
+      if (!email) errors.email = "Email is required";
+      else if (!EMAIL_REGEX.test(email)) errors.email = "Enter a valid email, e.g. name@example.com";
+    }
 
     if (!isEdit) {
       const wantsAdmin = !!((form.admin_name || "").trim() || form.admin_password || form.admin_confirm_password);
@@ -93,8 +95,9 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
     setSaving(true);
     setError("");
     try {
-      const payload = { ...form, email: form.email.trim() };
+      const payload = { ...form, email: (form.email || "").trim() };
       if (isEdit) {
+        delete payload.email; // email is locked after creation
         await updateOrganization(token, initial.id, payload);
       } else {
         await createOrganization(token, payload);
@@ -127,7 +130,20 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
           <input type="text" value={form.industry} onChange={(e) => set("industry", e.target.value)} required />
 
           <label>Email *</label>
-          <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required />
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            required
+            disabled={isEdit}
+            readOnly={isEdit}
+            style={isEdit ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
+          />
+          {isEdit && (
+            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
+              🔒 Email cannot be changed.
+            </p>
+          )}
           {fieldErrors.email && <p className="error-text" style={{ margin: "0.2rem 0 0" }}>{fieldErrors.email}</p>}
           {!isEdit && (
             <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
