@@ -16,6 +16,7 @@ import { OrganizationView, OrganizationsAdminView } from "../features/organizati
 import { PoliciesOrgCardsView, PoliciesPageView } from "../features/policies/Policies";
 import { ProfileView } from "../features/profile/Profile";
 import { ReportsView } from "../features/reports/Reports";
+import { SuperAdminReportsView } from "../features/reports/SuperAdminReports";
 import { SettingsView } from "../features/settings/Settings";
 
 export default function AppRoutes({ page, setPage, token, user, devices, policies, loadPolicies, showToast }) {
@@ -39,7 +40,9 @@ export default function AppRoutes({ page, setPage, token, user, devices, policie
       {page === "profile" && <ProfileView token={token} user={user} />}
       {page === "settings" && <SettingsView token={token} organizationId={user.organization_id} policies={policies} showToast={showToast} />}
       {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} />}
-      {page === "reports" && <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />}
+      {page === "reports" && (user.is_super_admin
+        ? <SuperAdminReportsView token={token} />
+        : <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />)}
 
       {page === "devices" && (user.is_super_admin
         ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} user={user} />

@@ -72,6 +72,7 @@ export function AuditLogsView({ token, organizationId, onBack }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [criticalOnly, setCriticalOnly] = useState(false);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,13 +86,14 @@ export function AuditLogsView({ token, organizationId, onBack }) {
     if (statusFilter) params.status = statusFilter;
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
+    if (criticalOnly) params.critical = "true";
     Promise.all([getAuditLogs(token, params), getAuditLogStats(token, organizationId)])
       .then(([l, s]) => { setLogs(l.logs); setTotal(l.total); setModules(l.modules); setStats(s); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [page, moduleFilter, statusFilter, organizationId]);
+  useEffect(() => { load(); }, [page, moduleFilter, statusFilter, criticalOnly, organizationId]);
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -133,6 +135,10 @@ export function AuditLogsView({ token, organizationId, onBack }) {
           <option value="">All statuses</option>
           <option value="success">Success</option>
           <option value="failure">Failed</option>
+        </select>
+        <select value={criticalOnly ? "critical" : ""} onChange={(e) => { setCriticalOnly(e.target.value === "critical"); setPage(1); }}>
+          <option value="">All events</option>
+          <option value="critical">Critical security events only</option>
         </select>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
