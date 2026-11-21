@@ -58,8 +58,11 @@ export function PoliciesPageView({ token, organizationId, showToast, onGlobalRef
   }
 
   async function handleToggleStatus(policy) {
+    const disabling = policy.status === "active";
+    if (disabling && !window.confirm(`Disable "${policy.name}"? Its restrictions will be removed from every device it is assigned to (rules still needed by another active policy stay). The assignment is kept, so Enable applies it again.`)) return;
     try {
-      await setPolicyStatus(token, policy.id, policy.status === "active" ? "disabled" : "active");
+      const data = await setPolicyStatus(token, policy.id, disabling ? "disabled" : "active");
+      showToast(data.message);
       load();
       onGlobalRefresh && onGlobalRefresh();
     } catch (err) {
