@@ -1,17 +1,22 @@
 // Super Admin Reports: platform-wide oversight reports + a custom report builder.
 // (Organization-level operational reports live in Reports.jsx for Org Admins.)
 
-import { useEffect, useState } from "react";
+import { Component, useEffect, useState } from "react";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { getCustomReportMeta, getPlatformReport, runCustomReport } from "./reportService";
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleString() : "—");
+const fmtDate = (d) => {
+  if (!d) return "—";
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+};
 const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "—");
+const arr = (v) => (Array.isArray(v) ? v : []);
 const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
 function sumBy(rows, key) {
-  return rows.reduce((total, r) => total + (Number(r[key]) || 0), 0);
+  return arr(rows).reduce((total, r) => total + (Number(r[key]) || 0), 0);
 }
 function pct(part, whole) {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : "0%";
@@ -26,7 +31,7 @@ const REPORTS = [
     sections: (d) => [{
       title: "Organizations",
       headers: ["Organization", "Code", "Status", "Devices", "Employees", "Managers", "Compliance %"],
-      rows: d.rows.map((r) => [r.name, r.code, cap(r.status), r.total_devices, r.employees, r.managers, `${r.compliance_percentage}%`]),
+      rows: arr(d.rows).map((r) => [r.name, r.code, cap(r.status), r.total_devices, r.employees, r.managers, `${r.compliance_percentage}%`]),
     }],
   },
   {
@@ -40,7 +45,7 @@ const REPORTS = [
         title: "Compliance by organization",
         headers: ["Organization", "Total devices", "Compliant", "Non-Compliant", "Pending Sync", "Policy Failed", "Unknown", "Compliance %"],
         rows: [
-          ...d.rows.map((r) => [r.name, r.total_devices, r.compliant, r.non_compliant, r.pending_sync, r.policy_failed, r.unknown, `${r.compliance_percentage}%`]),
+          ...arr(d.rows).map((r) => [r.name, r.total_devices, r.compliant, r.non_compliant, r.pending_sync, r.policy_failed, r.unknown, `${r.compliance_percentage}%`]),
           ["Platform total", total, compliant, sumBy(d.rows, "non_compliant"), sumBy(d.rows, "pending_sync"), sumBy(d.rows, "policy_failed"), sumBy(d.rows, "unknown"), pct(compliant, total)],
         ],
       }];
@@ -54,7 +59,7 @@ const REPORTS = [
       title: "Device inventory",
       headers: ["Organization", "Total", "Online", "Offline", "Pending enrollment", "Rooted", "Locked"],
       rows: [
-        ...d.rows.map((r) => [r.name, r.total, r.online, r.offline, r.pending, r.rooted, r.locked]),
+        ...arr(d.rows).map((r) => [r.name, r.total, r.online, r.offline, r.pending, r.rooted, r.locked]),
         ["Platform total", sumBy(d.rows, "total"), sumBy(d.rows, "online"), sumBy(d.rows, "offline"), sumBy(d.rows, "pending"), sumBy(d.rows, "rooted"), sumBy(d.rows, "locked")],
       ],
     }],
@@ -66,7 +71,7 @@ const REPORTS = [
     sections: (d) => [{
       title: "Risky devices",
       headers: ["Organization", "Device", "Model", "Employee", "Issue", "Compliance", "Battery %", "Last seen"],
-      rows: d.rows.map((r) => [
+      rows: arr(d.rows).map((r) => [
         r.organization, r.device_uid, dash(r.model), dash(r.employee_name),
         [r.is_rooted ? "Rooted" : null, ["Policy Failed", "Non-Compliant"].includes(r.compliance_status) ? r.compliance_status : null].filter(Boolean).join(" + "),
         r.compliance_status, dash(r.battery_level), fmtDate(r.last_seen),
@@ -82,12 +87,12 @@ const REPORTS = [
       {
         title: "Critical security events",
         headers: ["Time", "Organization", "User", "Category", "Action", "Status", "Details"],
-        rows: d.rows.map((r) => [fmtDate(r.created_at), dash(r.organization), r.user_name || r.user_email || "System", r.category, r.action, r.status, dash(r.details)]),
+        rows: arr(d.rows).map((r) => [fmtDate(r.created_at), dash(r.organization), r.user_name || r.user_email || "System", r.category, r.action, r.status, dash(r.details)]),
       },
       {
         title: "Currently suspended organizations",
         headers: ["Organization", "Code"],
-        rows: d.suspended_organizations.map((o) => [o.name, o.code]),
+        rows: arr(d.suspended_organizations).map((o) => [o.name, o.code]),
       },
     ],
   },
@@ -99,7 +104,7 @@ const REPORTS = [
     sections: (d) => [{
       title: "Platform activity",
       headers: ["Time", "Organization", "User", "Role", "Action", "Status", "Details"],
-      rows: d.rows.map((r) => [fmtDate(r.created_at), dash(r.organization), r.user_name || r.user_email || "System", dash(r.role), r.action, r.status, dash(r.details)]),
+      rows: arr(d.rows).map((r) => [fmtDate(r.created_at), dash(r.organization), r.user_name || r.user_email || "System", dash(r.role), r.action, r.status, dash(r.details)]),
     }],
   },
   {
@@ -110,7 +115,7 @@ const REPORTS = [
       title: "Applications by organization",
       headers: ["Organization", "Total apps", "Allowed", "Blocked", "APK packages", "APK installs"],
       rows: [
-        ...d.rows.map((r) => [r.name, r.total_apps, r.allowed_apps, r.blocked_apps, r.apk_packages, r.installs]),
+        ...arr(d.rows).map((r) => [r.name, r.total_apps, r.allowed_apps, r.blocked_apps, r.apk_packages, r.installs]),
         ["Platform total", sumBy(d.rows, "total_apps"), sumBy(d.rows, "allowed_apps"), sumBy(d.rows, "blocked_apps"), sumBy(d.rows, "apk_packages"), sumBy(d.rows, "installs")],
       ],
     }],
@@ -124,7 +129,7 @@ const REPORTS = [
       title: `Growth (per ${d.interval})`,
       headers: ["Period starting", "New organizations", "Device enrollments"],
       rows: [
-        ...d.rows.map((r) => [r.period, r.new_organizations, r.device_enrollments]),
+        ...arr(d.rows).map((r) => [r.period, r.new_organizations, r.device_enrollments]),
         ["Total", sumBy(d.rows, "new_organizations"), sumBy(d.rows, "device_enrollments")],
       ],
     }],
@@ -138,12 +143,12 @@ const REPORTS = [
       {
         title: `Devices with no heartbeat for ${d.days}+ days`,
         headers: ["Organization", "Device", "Model", "Employee", "Last heartbeat", "Days inactive"],
-        rows: d.devices.map((r) => [r.organization, r.device_uid, dash(r.model), dash(r.employee_name), r.last_seen ? fmtDate(r.last_seen) : "Never", r.days_inactive ?? "Never"]),
+        rows: arr(d.devices).map((r) => [r.organization, r.device_uid, dash(r.model), dash(r.employee_name), r.last_seen ? fmtDate(r.last_seen) : "Never", r.days_inactive ?? "Never"]),
       },
       {
         title: `Organizations with no heartbeat for ${d.days}+ days`,
         headers: ["Organization", "Status", "Enrolled devices", "Last heartbeat"],
-        rows: d.organizations.map((o) => [o.name, cap(o.status), o.devices, o.last_heartbeat ? fmtDate(o.last_heartbeat) : "Never"]),
+        rows: arr(d.organizations).map((o) => [o.name, cap(o.status), o.devices, o.last_heartbeat ? fmtDate(o.last_heartbeat) : "Never"]),
       },
     ],
   },
@@ -175,6 +180,33 @@ function ReportTable({ section, filenameBase }) {
   );
 }
 
+// Builds a report's tables; never throws (a bad/partial response shows an empty state instead).
+function safeSections(report, payload) {
+  try {
+    return report.sections(payload || {});
+  } catch (err) {
+    console.error("Report render failed:", err);
+    return [];
+  }
+}
+
+class ReportErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err) { console.error("Reports crashed:", err); }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div>
+          <p className="error-text">Something went wrong while showing this report.</p>
+          <button type="button" className="ghost-dark" onClick={() => this.setState({ failed: false })}>Try again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function PlatformReports({ token }) {
   const [reportKey, setReportKey] = useState(REPORTS[0].key);
   const [dateFrom, setDateFrom] = useState("");
@@ -196,12 +228,12 @@ function PlatformReports({ token }) {
     if (controls.includes("interval")) params.interval = interval;
     if (controls.includes("days")) params.days = days;
     getPlatformReport(token, report.key, params)
-      .then((d) => setData(d))
+      .then((d) => setData({ key: report.key, payload: d }))
       .catch((err) => { setData(null); setError(err.message); })
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { setData(null); load(); }, [reportKey]);
+  useEffect(() => { setData(null); setError(""); load(); }, [reportKey]);
 
   return (
     <div>
@@ -249,7 +281,7 @@ function PlatformReports({ token }) {
 
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
-      {!loading && data && report.sections(data).map((section, i) => (
+      {!loading && data && data.key === report.key && safeSections(report, data.payload).map((section, i) => (
         <ReportTable key={i} section={section} filenameBase={`${report.key}${i > 0 ? `-${i + 1}` : ""}`} />
       ))}
     </div>
@@ -418,7 +450,9 @@ export function SuperAdminReportsView({ token }) {
         <button type="button" className={tab === "platform" ? "" : "ghost-dark"} onClick={() => setTab("platform")}>Platform Reports</button>
         <button type="button" className={tab === "custom" ? "" : "ghost-dark"} onClick={() => setTab("custom")}>Custom Report Builder</button>
       </div>
-      {tab === "platform" ? <PlatformReports token={token} /> : <CustomReportBuilder token={token} />}
+      <ReportErrorBoundary key={tab}>
+        {tab === "platform" ? <PlatformReports token={token} /> : <CustomReportBuilder token={token} />}
+      </ReportErrorBoundary>
     </section>
   );
 }
