@@ -151,7 +151,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
       <div className="dash-layout">
         <div className="dash-main-col">
           {/* Fleet overview hero — includes the Device Health (avg battery) figure */}
-          <div className="dash-hero">
+          <div className="dash-hero" style={isSA ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
             <div>
               <div className="hero-eyebrow"><IconActivity size={14} /> Fleet overview</div>
               <h3>Your devices at a glance</h3>
@@ -161,10 +161,17 @@ export function DashboardOverview({ token, user, onNavigate }) {
                   <strong>{summary.online_devices ?? "—"} / {summary.total_devices ?? "—"}</strong>
                   <span>Devices online</span>
                 </div>
-                <div className="hero-stat">
-                  <strong>{compliancePct != null ? `${compliancePct}%` : "—"}</strong>
-                  <span>Policy compliant</span>
-                </div>
+                {isSA ? (
+                  <div className="hero-stat">
+                    <strong>{summary.pending_devices ?? "—"}</strong>
+                    <span>Pending enrollments</span>
+                  </div>
+                ) : (
+                  <div className="hero-stat">
+                    <strong>{compliancePct != null ? `${compliancePct}%` : "—"}</strong>
+                    <span>Policy compliant</span>
+                  </div>
+                )}
                 {isSA ? (
                   <div className="hero-stat">
                     <strong>{summary.active_organizations ?? "—"} / {summary.total_organizations ?? "—"}</strong>
@@ -182,31 +189,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
                 <button className="hero-link" onClick={() => onNavigate("reports")}>Reports</button>
               </div>
             </div>
-            <HealthRing value={avgBattery} label="Average battery across fleet" chartTheme={chartTheme} />
-          </div>
-        </div>
-
-        <div className="dash-side-col">
-          <div className="dash-card">
-            <div className="card-header">
-              <div>
-                <h3>{isSA ? "Critical Security Events" : "Security Alerts"}</h3>
-                <p className="card-subtitle">{alerts.length > 0 ? (isSA ? `Latest ${alerts.length} across all organizations` : `${alerts.length} active`) : "All clear"}</p>
-              </div>
-              <button className="card-link" onClick={() => onNavigate(isSA ? "activity" : "alerts")}>View all</button>
-            </div>
-            {alerts.length === 0 && <p className="empty-state">{isSA ? "No critical events." : "No active alerts."}</p>}
-            <div className="alert-scroll">
-              {alerts.slice(0, 8).map((a, i) => (
-                <div key={i} className="alert-card" style={{ marginBottom: "0.5rem" }}>
-                  <span className="alert-icon"><IconAlertTriangle size={16} /></span>
-                  <div>
-                    <div className="alert-title">{a.device}</div>
-                    <div className="alert-desc">{a.message}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {!isSA && <HealthRing value={avgBattery} label="Average battery across fleet" chartTheme={chartTheme} />}
           </div>
 
           <div className="dash-card">
@@ -232,6 +215,30 @@ export function DashboardOverview({ token, user, onNavigate }) {
                 <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="dash-side-col">
+          <div className="dash-card">
+            <div className="card-header">
+              <div>
+                <h3>{isSA ? "Critical Security Events" : "Security Alerts"}</h3>
+                <p className="card-subtitle">{alerts.length > 0 ? (isSA ? `Latest ${alerts.length} across all organizations` : `${alerts.length} active`) : "All clear"}</p>
+              </div>
+              <button className="card-link" onClick={() => onNavigate(isSA ? "critical" : "alerts")}>View all</button>
+            </div>
+            {alerts.length === 0 && <p className="empty-state">{isSA ? "No critical events." : "No active alerts."}</p>}
+            <div className="alert-scroll">
+              {alerts.slice(0, 8).map((a, i) => (
+                <div key={i} className="alert-card" style={{ marginBottom: "0.5rem" }}>
+                  <span className="alert-icon"><IconAlertTriangle size={16} /></span>
+                  <div>
+                    <div className="alert-title">{a.device}</div>
+                    <div className="alert-desc">{a.message}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

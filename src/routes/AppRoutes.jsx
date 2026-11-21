@@ -5,6 +5,7 @@
 import { AlertsView } from "../features/alerts/Alerts";
 import { ApplicationsView } from "../features/applications/Applications";
 import { AuditLogsOrgCardsView, AuditLogsView } from "../features/audit/AuditLogs";
+import { CriticalEventsView } from "../features/audit/CriticalEvents";
 import { CommandCenterView } from "../features/commands/Commands";
 import { ComplianceView } from "../features/compliance/Compliance";
 import { DashboardOverview } from "../features/dashboard/Dashboard";
@@ -33,6 +34,7 @@ export default function AppRoutes({ page, setPage, token, user, devices, policie
       {page === "activity" && (user.is_super_admin
         ? <AuditLogsOrgCardsView token={token} />
         : <AuditLogsView token={token} organizationId={user.organization_id} />)}
+      {page === "critical" && user.is_super_admin && <CriticalEventsView token={token} />}
       {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
       {page === "compliance" && <ComplianceView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
       {page === "applications" && <ApplicationsView token={token} organizationId={user.organization_id} showToast={showToast} />}

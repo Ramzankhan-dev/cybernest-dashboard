@@ -10,6 +10,7 @@
 import {
   IconAlertTriangle,
   IconBarChart,
+  IconShieldAlert,
   IconBuilding,
   IconCheckCircle,
   IconDashboard,
@@ -38,6 +39,7 @@ export function getNavItems(user) {
     { key: "devices", label: "Devices", icon: IconSmartphone, roles: [ROLES.SUPER_ADMIN, ROLES.ORG_ADMIN, ROLES.DEPT_MANAGER] },
     { key: "policies", label: "Policies", icon: IconShieldCheck, roles: [ROLES.SUPER_ADMIN, ROLES.ORG_ADMIN] },
     { key: "activity", label: "Audit Logs", icon: IconScroll, roles: [ROLES.SUPER_ADMIN, ROLES.ORG_ADMIN] },
+    { key: "critical", label: "Critical Security Events", icon: IconShieldAlert, roles: [ROLES.SUPER_ADMIN] },
     { key: "commands", label: "Commands", icon: IconZap, roles: [ROLES.ORG_ADMIN, ROLES.DEPT_MANAGER] },
     { key: "compliance", label: "Compliance", icon: IconCheckCircle, roles: [ROLES.ORG_ADMIN, ROLES.DEPT_MANAGER] },
     { key: "applications", label: "Applications", icon: IconPackage, roles: [ROLES.ORG_ADMIN] },
@@ -59,7 +61,7 @@ export function getVisibleNavItems(user) {
 export const NAV_LAYOUT = [
   "overview",
   { id: "management", label: "Management", icon: IconLayers, children: ["org", "departments", "employees", "devices"] },
-  { id: "security", label: "Security", icon: IconLock, children: ["policies", "compliance", "alerts", "activity"] },
+  { id: "security", label: "Security", icon: IconLock, children: ["policies", "compliance", "alerts", "activity", "critical"] },
   { id: "operations", label: "Operations", icon: IconSliders, children: ["commands", "applications", "notifications"] },
   "reports",
   "profile",
