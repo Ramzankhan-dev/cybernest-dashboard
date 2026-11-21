@@ -101,21 +101,6 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
             <input type="time" value={form.working_hours_end || ""} onChange={(e) => set("working_hours_end", e.target.value)} />
           </div>
 
-          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Network Policy</p>
-          <div className="policy-checkbox-grid">
-            {checkbox("vpn_required", "VPN required")}
-            {checkbox("mobile_data_restricted", "Restrict mobile data")}
-          </div>
-          <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
-            Note: VPN/proxy enforcement is recorded here but not yet wired to an on-device action.
-          </p>
-
-          <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Security Policy</p>
-          <div className="policy-checkbox-grid">
-            {checkbox("root_detection_enabled", "Root detection")}
-            {checkbox("developer_options_disabled", "Disable developer options")}
-          </div>
-
           {error && <p className="error-text">{error}</p>}
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.2rem" }}>
             <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Policy"}</button>
