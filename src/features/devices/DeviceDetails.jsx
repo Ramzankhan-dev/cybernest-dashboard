@@ -40,7 +40,7 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
     setSending(commandType);
     try {
       await sendCommand(token, device.device_uid, commandType, packageName);
-      onCommandSent(`${commandType} sent to ${device.employee_name || device.device_uid}`);
+      onCommandSent(`${commandType} sent to ${userName || device.device_uid}`);
       if (commandType === "lock") setIsLocked(true);
       if (commandType === "unlock") setIsLocked(false);
     } catch (err) {
@@ -52,13 +52,13 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
 
   async function handleWipe() {
     const confirmed = window.confirm(
-      `⚠️ This will PERMANENTLY ERASE all data on "${device.employee_name || device.device_uid}". This cannot be undone. Continue?`
+      `⚠️ This will PERMANENTLY ERASE all data on "${userName || device.device_uid}". This cannot be undone. Continue?`
     );
     if (!confirmed) return;
     setSending("wipe");
     try {
       await sendCommand(token, device.device_uid, "wipe");
-      onCommandSent(`Wipe command sent to ${device.employee_name || device.device_uid}`);
+      onCommandSent(`Wipe command sent to ${userName || device.device_uid}`);
     } catch (err) {
       onCommandSent(`Failed: ${err.message}`, true);
     } finally {
@@ -94,11 +94,14 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
     }
   }
 
+  // The employee the device is assigned to (joined from the employees table); falls back to the label typed at enrollment.
+  const userName = device.assigned_employee_name || device.employee_name;
+
   return (
     <section className="details-panel">
       <div className="history-header">
         <h2 style={{ border: "none", margin: 0 }}>
-          {device.employee_name || "Unassigned"} — <span className="mono">{device.device_uid}</span>
+          {userName || "Unassigned"} — <span className="mono">{device.device_uid}</span>
         </h2>
         <button className="ghost-dark" onClick={onClose}>Close</button>
       </div>
@@ -119,6 +122,8 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
         <div>
           <div className="table-scroll"><table style={{ marginBottom: "1.2rem" }}>
             <tbody>
+              <tr><td><strong>Assigned User</strong></td><td>{userName || "Unassigned"}</td></tr>
+              <tr><td><strong>Department</strong></td><td>{device.department_name || "Unassigned"}</td></tr>
               <tr><td><strong>Manufacturer</strong></td><td>{device.manufacturer || "—"}</td></tr>
               <tr><td><strong>Model</strong></td><td>{device.model || "—"}</td></tr>
               <tr><td><strong>Device ID</strong></td><td className="mono">{device.device_identifier || "—"}</td></tr>

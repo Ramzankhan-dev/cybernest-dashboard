@@ -141,7 +141,7 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
           />
           {isEdit && (
             <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
-              🔒 Email cannot be changed.
+              Email cannot be changed.
             </p>
           )}
           {fieldErrors.email && <p className="error-text" style={{ margin: "0.2rem 0 0" }}>{fieldErrors.email}</p>}

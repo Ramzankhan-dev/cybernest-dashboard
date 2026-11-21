@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IconX } from "../../components/icons";
+import { PASSWORD_HINT, passwordRuleError } from "../../utils/passwordRules";
 import { setEmployeePassword } from "./employeeService";
 
 export function SetPasswordModal({ employee, token, onClose, onSaved }) {
@@ -12,7 +13,8 @@ export function SetPasswordModal({ employee, token, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const ruleError = passwordRuleError(password);
+    if (ruleError) { setError(ruleError); return; }
     if (password !== confirm) { setError("Passwords don't match"); return; }
     setSaving(true);
     setError("");
@@ -33,6 +35,8 @@ export function SetPasswordModal({ employee, token, onClose, onSaved }) {
         <h3 style={{ marginTop: 0 }}>Set Password — {employee.name}</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
           Used for Employee Login on the Android agent (SRS-A04). The employee signs in with their Employee ID ({employee.employee_code}) or email.
+          {employee.role === "DepartmentManager" && " As a Department Manager, this is also their dashboard login password."}
+          {" "}{PASSWORD_HINT}.
         </p>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>New Password *</label>

@@ -5,6 +5,7 @@ import { RefreshButton } from "../../components/common/RefreshButton";
 import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
+import { PASSWORD_HINT, passwordRuleError } from "../../utils/passwordRules";
 import { SetPasswordModal } from "./SetPasswordModal";
 import {
   assignEmployeeDevice,
@@ -14,6 +15,7 @@ import {
   deleteEmployee,
   getEmployees,
   setEmployeeStatus,
+  unassignEmployeeDevice,
 } from "./employeeService";
 
 export function EmployeesOrgCardsView({ token }) {
@@ -119,9 +121,9 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
     getEmployees(token, params).then((data) => { setEmployees(data.employees); setTotal(data.total); }).catch((err) => setError(err.message));
     const deptParams = organizationId ? { organization_id: organizationId, limit: 100 } : {};
     getDepartments(token, deptParams).then((data) => setDepartments(data.departments)).catch(() => {});
-    // Devices with no employee attached yet — the only ones that make sense to assign
-    getDevices(token, { organization_id: organizationId, department_id: "unassigned", limit: 200 })
-      .then((data) => setAvailableDevices(data.devices))
+    // Only devices with no employee attached are assignable; they are grouped per row (see deviceOptionsFor)
+    getDevices(token, { organization_id: organizationId, limit: 500 })
+      .then((data) => setAvailableDevices(data.devices.filter((d) => !d.assigned_employee_id)))
       .catch(() => {});
   }
 
@@ -142,9 +144,9 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = "* Please enter a valid email";
     if (!deptId) errors.deptId = "* Please select a department";
     if (role === "DepartmentManager" && !managerPassword.trim()) {
-      errors.managerPassword = "* Please set a password (min 8 characters)";
-    } else if (role === "DepartmentManager" && managerPassword.trim().length < 8) {
-      errors.managerPassword = "* Password must be at least 8 characters";
+      errors.managerPassword = "* Please set a password (min 8 characters, letters and numbers)";
+    } else if (role === "DepartmentManager" && passwordRuleError(managerPassword.trim())) {
+      errors.managerPassword = `* ${passwordRuleError(managerPassword.trim())}`;
     }
     return errors;
   }
@@ -176,8 +178,10 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
     const deviceUid = (deviceInputs[employeeId] || "").trim();
     if (!deviceUid) return;
     setActing(employeeId);
+    setError("");
     try {
       await assignEmployeeDevice(token, employeeId, deviceUid);
+      setDeviceInputs((prev) => ({ ...prev, [employeeId]: "" }));
       load();
     } catch (err) {
       setError(err.message);
@@ -203,6 +207,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
     setActing(employee.id);
     try {
       await changeEmployeeDepartment(token, employee.id, newDeptId);
+      setDeviceInputs((prev) => ({ ...prev, [employee.id]: "" })); // the "department devices" group changes with the department
       load();
     } catch (err) {
       setError(err.message);
@@ -214,16 +219,42 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
   async function handleRoleChange(employee, newRole) {
     let password;
     if (newRole === "DepartmentManager") {
-      password = window.prompt(`Set a dashboard login password for ${employee.name} (min 8 characters):`);
+      password = window.prompt(`Set a dashboard login password for ${employee.name} (${PASSWORD_HINT.toLowerCase()}):`);
       if (!password) return; // cancelled
+      const ruleError = passwordRuleError(password);
+      if (ruleError) { setError(ruleError); return; }
     }
     setActing(employee.id);
+    setError("");
     try {
       await changeEmployeeRole(token, employee.id, newRole, password);
-      load();
     } catch (err) {
       setError(err.message);
     } finally {
+      load(); // always re-sync the row, so the dropdown never shows a role that was not saved
+      setActing(null);
+    }
+  }
+
+  // Two groups for an employee row: devices with no department yet, and unassigned devices already in that row's department.
+  function deviceOptionsFor(employee) {
+    return {
+      pool: availableDevices.filter((d) => !d.department_id),
+      department: availableDevices.filter((d) => d.department_id && String(d.department_id) === String(employee.department_id)),
+    };
+  }
+  const deviceLabel = (d) => `${d.device_uid}${d.model ? ` — ${d.model}` : ""}`;
+
+  async function handleUnassignDevice(employee) {
+    if (!window.confirm(`Unassign ${employee.model || employee.device_uid} from ${employee.name}?`)) return;
+    setActing(employee.id);
+    setError("");
+    try {
+      await unassignEmployeeDevice(token, employee.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      load();
       setActing(null);
     }
   }
@@ -289,7 +320,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
               <div className="field-group">
                 <input
                   type="password"
-                  placeholder="Dashboard password (min 8 characters)"
+                  placeholder="Dashboard password (8+ chars, letters & numbers)"
                   value={managerPassword}
                   className={fieldErrors.managerPassword ? "input-error" : ""}
                   onChange={(e) => { setManagerPassword(e.target.value); clearFieldError("managerPassword"); }}
@@ -386,17 +417,31 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
                 <td><span className={`badge ${e.status === "active" ? "active" : "suspended"}`}>{e.status}</span></td>
                 {!isSuperAdmin && (
                   <td className="actions">
-                    {!e.device_uid && (
+                    {e.device_uid ? (
+                      <button disabled={acting !== null} onClick={() => handleUnassignDevice(e)}>Unassign Device</button>
+                    ) : (
                       <>
                         <select
-                          style={{ width: "150px" }}
+                          style={{ width: "190px" }}
                           value={deviceInputs[e.id] || ""}
                           onChange={(ev) => setDeviceInputs({ ...deviceInputs, [e.id]: ev.target.value })}
                         >
                           <option value="">Select device…</option>
-                          {availableDevices.map((d) => (
-                            <option key={d.id} value={d.device_uid}>{d.model || d.device_uid} {d.imei ? `(${d.imei.slice(-4)})` : ""}</option>
-                          ))}
+                          {(() => {
+                            const opts = deviceOptionsFor(e);
+                            return (
+                              <>
+                                <optgroup label="Unassigned Devices">
+                                  {opts.pool.length === 0 && <option disabled value="__none_pool">None available</option>}
+                                  {opts.pool.map((d) => <option key={d.id} value={d.device_uid}>{deviceLabel(d)}</option>)}
+                                </optgroup>
+                                <optgroup label="Department Unassigned Devices">
+                                  {opts.department.length === 0 && <option disabled value="__none_dept">None available</option>}
+                                  {opts.department.map((d) => <option key={d.id} value={d.device_uid}>{deviceLabel(d)}</option>)}
+                                </optgroup>
+                              </>
+                            );
+                          })()}
                         </select>
                         <button disabled={acting !== null || !deviceInputs[e.id]} onClick={() => handleAssignDevice(e.id)}>Assign</button>
                       </>

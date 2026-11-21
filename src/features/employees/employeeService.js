@@ -77,6 +77,16 @@ export async function assignEmployeeDevice(token, employeeId, deviceUid) {
   return data;
 }
 
+export async function unassignEmployeeDevice(token, employeeId) {
+  const res = await fetch(`${BASE_URL}/api/employees/${employeeId}/unassign-device`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to unassign device");
+  return data;
+}
+
 export async function setEmployeeStatus(token, employeeId, status) {
   const res = await fetch(`${BASE_URL}/api/employees/${employeeId}/status`, {
     method: "PATCH",
