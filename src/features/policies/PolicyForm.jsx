@@ -4,6 +4,12 @@ import { useState } from "react";
 import { IconX } from "../../components/icons";
 import { createPolicy, updatePolicy } from "./policyService";
 
+// Current local time as "HH:MM" (the format <input type="time"> expects).
+function currentTimeHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 export function PolicyFormModal({ initial, token, organizationId, onClose, onSaved }) {
   const blank = {
     name: "", policy_code: "", description: "",
@@ -16,7 +22,9 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
     vpn_required: false, mobile_data_restricted: false,
     kiosk_mode: false, kiosk_package: "", working_hours_start: "", working_hours_end: "",
   };
-  const [form, setForm] = useState(initial ? { ...blank, ...initial } : blank);
+  // New policy: working-hours start is pre-filled with the current time (editable);
+  // the end time stays empty for the admin to set. Editing keeps the saved values.
+  const [form, setForm] = useState(initial ? { ...blank, ...initial } : { ...blank, working_hours_start: currentTimeHHMM() });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,6 +39,11 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
     setError("");
     try {
       const payload = { ...form, organization_id: organizationId };
+      // Working hours need both times: a pre-filled start without an end means "no schedule".
+      if (form.working_hours_end && !form.working_hours_start) {
+        throw new Error("Please set a working-hours start time (or clear the end time).");
+      }
+      if (!form.working_hours_end) payload.working_hours_start = "";
       if (initial) await updatePolicy(token, initial.id, payload);
       else await createPolicy(token, payload);
       onSaved();
