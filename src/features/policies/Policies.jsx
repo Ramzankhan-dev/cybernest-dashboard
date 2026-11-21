@@ -12,7 +12,7 @@ import {
   unassignPolicyFromAll,
 } from "./policyService";
 
-export function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, isSuperAdmin = false }) {
+export function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, isSuperAdmin = false, onBack }) {
   const [policies, setPolicies] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
@@ -106,6 +106,7 @@ export function PoliciesPageView({ token, organizationId, showToast, onGlobalRef
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Policies</h2>
+        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
         {!isSuperAdmin && (
           <button onClick={() => { setEditingPolicy(null); setShowFormModal(true); }}>+ Create Policy</button>
         )}
@@ -198,12 +199,23 @@ export function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  useEffect(() => {
+  function loadOrgs() {
     getAllOrganizations(token, { limit: 100 }).then((data) => setOrgs(data.organizations)).catch((err) => setError(err.message)).finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { loadOrgs(); }, []);
 
   if (selectedOrg) {
-    return <PoliciesPageView token={token} organizationId={selectedOrg.id} showToast={showToast} onGlobalRefresh={onGlobalRefresh} isSuperAdmin />;
+    return (
+      <PoliciesPageView
+        token={token}
+        organizationId={selectedOrg.id}
+        showToast={showToast}
+        onGlobalRefresh={onGlobalRefresh}
+        isSuperAdmin
+        onBack={() => { setSelectedOrg(null); loadOrgs(); }} // reload so counts are current
+      />
+    );
   }
 
   return (
@@ -213,7 +225,10 @@ export function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.map((org) => (
         <div key={org.id} className="report-card" style={{ cursor: "pointer", marginBottom: "0.8rem" }} onClick={() => setSelectedOrg(org)}>
-          <h4 style={{ margin: 0 }}>{org.name}</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h4 style={{ margin: 0 }}>{org.name}</h4>
+            <span className="badge setup">{Number(org.policy_count) || 0} {Number(org.policy_count) === 1 ? "Policy" : "Policies"}</span>
+          </div>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.3rem 0 0" }}>{org.code}</p>
         </div>
       ))}
