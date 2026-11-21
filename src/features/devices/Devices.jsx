@@ -1,6 +1,7 @@
 // Devices entry points: organization picker (Super Admin) -> department picker -> device list.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getDepartments } from "../departments/departmentService";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { DevicesCardListView } from "./DeviceList";
@@ -13,15 +14,19 @@ export function DevicesDeptCardsView({ token, policies, organizationId, onBack, 
   const [error, setError] = useState("");
   const [selectedDept, setSelectedDept] = useState(null);
 
-  useEffect(() => {
-    getDepartments(token, { organization_id: organizationId, limit: 100 })
-      .then((data) => setDepartments(data.departments))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-    getDevices(token, { organization_id: organizationId, department_id: "unassigned", limit: 1 })
-      .then((data) => setUnassignedCount(data.total))
-      .catch(() => {});
-  }, [organizationId]);
+  function load() {
+    return Promise.all([
+      getDepartments(token, { organization_id: organizationId, limit: 100 })
+        .then((data) => setDepartments(data.departments))
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false)),
+      getDevices(token, { organization_id: organizationId, department_id: "unassigned", limit: 1 })
+        .then((data) => setUnassignedCount(data.total))
+        .catch(() => {}),
+    ]);
+  }
+
+  useEffect(() => { load(); }, [organizationId]);
 
   if (selectedDept) {
     return (
@@ -42,7 +47,10 @@ export function DevicesDeptCardsView({ token, policies, organizationId, onBack, 
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Devices — Select a Department</h2>
-        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <RefreshButton onRefresh={() => load()} />
+          {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+        </div>
       </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
@@ -77,12 +85,14 @@ export function DevicesOrgCardsView({ token, policies, showToast, user }) {
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  useEffect(() => {
-    getAllOrganizations(token, { limit: 100 })
+  function load() {
+    return getAllOrganizations(token, { limit: 100 })
       .then((data) => setOrgs(data.organizations))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   if (selectedOrg) {
     return (
@@ -99,7 +109,10 @@ export function DevicesOrgCardsView({ token, policies, showToast, user }) {
 
   return (
     <section>
-      <h2>Devices — Select an Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Devices — Select an Organization</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}

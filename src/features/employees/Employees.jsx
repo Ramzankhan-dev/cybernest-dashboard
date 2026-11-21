@@ -1,6 +1,7 @@
 // Employees: create, filter, edit, role / department / status changes, device assignment. Super Admin picks an organization first.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
@@ -21,12 +22,14 @@ export function EmployeesOrgCardsView({ token }) {
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  useEffect(() => {
-    getAllOrganizations(token, { limit: 100 })
+  function load() {
+    return getAllOrganizations(token, { limit: 100 })
       .then((data) => setOrgs(data.organizations))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   if (selectedOrg) {
     return (
@@ -41,7 +44,10 @@ export function EmployeesOrgCardsView({ token }) {
 
   return (
     <section>
-      <h2>Employees — by Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Employees — by Organization</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}

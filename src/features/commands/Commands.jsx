@@ -1,6 +1,7 @@
 // Command center: send commands to selected devices; pending / completed / failed history with cancel / retry.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
@@ -31,7 +32,7 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
     const params = { tab, page, limit: 30 };
     if (search) params.search = search;
     if (commandTypeFilter) params.command_type = commandTypeFilter;
-    getActivityLogs(token, params)
+    return getActivityLogs(token, params)
       .then((data) => { setCommands(data.commands); setTotal(data.total); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -131,7 +132,10 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
 
   return (
     <section>
-      <h2>Command Center</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Command Center</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
 
       {!isSuperAdmin ? (
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>

@@ -1,6 +1,7 @@
 // Reports page: report cards with PDF / Excel (CSV) export.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getApplications } from "../applications/applicationService";
 import { getActivityLogs } from "../commands/commandService";
@@ -22,7 +23,7 @@ export function ReportCard({ title, stat, headers, rows, filenameBase }) {
   );
 }
 
-export function ReportsView({ devices, policies, token, organizationId }) {
+export function ReportsView({ devices, policies, token, organizationId, onRefreshShared }) {
   const [logs, setLogs] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -35,16 +36,22 @@ export function ReportsView({ devices, policies, token, organizationId }) {
     const params = { limit: 500 };
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
-    getActivityLogs(token, params).then((data) => setLogs(data.commands)).catch(() => {});
+    return getActivityLogs(token, params).then((data) => setLogs(data.commands)).catch(() => {});
   }
 
-  useEffect(() => {
-    loadDateFiltered();
-    getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {});
-    getEmployees(token, { organization_id: organizationId, limit: 500 }).then((data) => setEmployees(data.employees)).catch(() => {});
-    getCompliance(token, { organization_id: organizationId, limit: 500 }).then((data) => setComplianceRows(data.compliance)).catch(() => {});
-    getApplications(token, { organization_id: organizationId, limit: 500 }).then((data) => setApplications(data.applications)).catch(() => {});
-  }, [organizationId]);
+  // Re-fetches every report source; devices/policies live in the app shell, so they are refreshed through onRefreshShared.
+  function loadAll() {
+    return Promise.all([
+      onRefreshShared ? onRefreshShared() : null,
+      loadDateFiltered(),
+      getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {}),
+      getEmployees(token, { organization_id: organizationId, limit: 500 }).then((data) => setEmployees(data.employees)).catch(() => {}),
+      getCompliance(token, { organization_id: organizationId, limit: 500 }).then((data) => setComplianceRows(data.compliance)).catch(() => {}),
+      getApplications(token, { organization_id: organizationId, limit: 500 }).then((data) => setApplications(data.applications)).catch(() => {}),
+    ]);
+  }
+
+  useEffect(() => { loadAll(); }, [organizationId]);
 
   // 1. Device Inventory
   const inventoryHeaders = ["Employee", "Device UID", "Model", "Manufacturer", "Android", "IMEI", "Battery %", "Status"];
@@ -114,7 +121,10 @@ export function ReportsView({ devices, policies, token, organizationId }) {
 
   return (
     <section>
-      <h2>Reports</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Reports</h2>
+        <RefreshButton onRefresh={loadAll} />
+      </div>
 
       <div className="policy-form" style={{ marginBottom: "1rem" }}>
         <label style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Date range for Activity Report:</label>

@@ -107,6 +107,7 @@ export default function MainLayout({ token, user, onLogout }) {
           devices={devices}
           policies={policies}
           loadPolicies={loadPolicies}
+          refreshShared={() => Promise.all([loadDevices(), loadPolicies()])}
           showToast={showToast}
         />
       </div>

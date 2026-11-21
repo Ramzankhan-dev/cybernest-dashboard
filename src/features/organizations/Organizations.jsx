@@ -1,6 +1,7 @@
 // Organizations: Super Admin management view and the Org Admin's own organization view.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { OrgFormModal } from "./OrganizationForm";
 import {
   deleteOrganization,
@@ -169,7 +170,7 @@ export function OrganizationView({ token }) {
   const [org, setOrg] = useState(null);
 
   function load() {
-    getMyOrganization(token).then((data) => setOrg(data)).catch(() => {});
+    return getMyOrganization(token).then((data) => setOrg(data)).catch(() => {});
   }
 
   useEffect(() => { load(); }, []);
@@ -180,6 +181,7 @@ export function OrganizationView({ token }) {
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>{org.name}</h2>
+        <RefreshButton onRefresh={load} />
       </div>
       <div className="policy-panel">
         <div className="report-grid">

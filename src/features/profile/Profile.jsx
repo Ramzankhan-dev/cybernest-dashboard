@@ -1,6 +1,7 @@
 // Admin profile: change password, API keys, appearance.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { ThemeSegmented } from "../../components/common/ThemeToggle";
 import { changePassword, generateApiKey, getApiKeys } from "./profileService";
 
@@ -16,7 +17,7 @@ export function ProfileView({ token, user }) {
   const [keyLoading, setKeyLoading] = useState(false);
 
   function loadKeys() {
-    getApiKeys(token).then(setApiKeys).catch(() => {});
+    return getApiKeys(token).then(setApiKeys).catch(() => {});
   }
 
   useEffect(() => {
@@ -55,7 +56,10 @@ export function ProfileView({ token, user }) {
 
   return (
     <section>
-      <h2>Admin profile</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Admin profile</h2>
+        <RefreshButton onRefresh={loadKeys} />
+      </div>
       <p style={{ marginBottom: "1.2rem", fontSize: "0.9rem" }}>
         <strong>{user.name}</strong> — <span className="mono">{user.email}</span>
       </p>

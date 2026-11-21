@@ -1,6 +1,7 @@
 // System settings, appearance, and system health.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { ThemeSegmented } from "../../components/common/ThemeToggle";
 import { getDepartments } from "../departments/departmentService";
 import { getSettings, getSystemHealth, resetSettings, updateSettings } from "./settingsService";
@@ -14,7 +15,7 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
 
   function load() {
     setLoading(true);
-    Promise.all([
+    return Promise.all([
       getSettings(token, organizationId),
       getDepartments(token, { organization_id: organizationId, limit: 100 }),
       getSystemHealth(token),
@@ -57,7 +58,10 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
 
   return (
     <section>
-      <h2>System Settings</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>System Settings</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
 
       <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
         <div className="appearance-row">

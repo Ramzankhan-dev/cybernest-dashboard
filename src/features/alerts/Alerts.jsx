@@ -1,22 +1,25 @@
 // Alerts page: security / compliance alerts derived from compliance and audit data.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getAuditLogs } from "../audit/auditService";
 import { getCompliance } from "../compliance/complianceService";
 import { isDeviceOnline } from "../devices/deviceUtils";
 
-export function AlertsView({ devices, token, organizationId }) {
+export function AlertsView({ devices, token, organizationId, onRefreshDevices }) {
   const [complianceRows, setComplianceRows] = useState([]);
   const [criticalEvents, setCriticalEvents] = useState([]);
   const [sourceFilter, setSourceFilter] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
+  // Device alerts come from the app shell's device list (onRefreshDevices); compliance/audit alerts are fetched here.
+  function load() {
+    return Promise.all([
+      onRefreshDevices ? onRefreshDevices() : null,
       getCompliance(token, { organization_id: organizationId, limit: 200 }),
       getAuditLogs(token, { organization_id: organizationId, limit: 100 }),
     ])
-      .then(([c, a]) => {
+      .then(([, c, a]) => {
         setComplianceRows(c.compliance);
         const critical = a.logs.filter((l) =>
           ["device_removed", "policy_deleted", "organization_suspended", "login_failed"].includes(l.action)
@@ -25,7 +28,9 @@ export function AlertsView({ devices, token, organizationId }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [organizationId]);
+  }
+
+  useEffect(() => { load(); }, [organizationId]);
 
   const alerts = [];
 
@@ -86,12 +91,15 @@ export function AlertsView({ devices, token, organizationId }) {
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Alerts {alerts.length > 0 && `· ${alerts.length} active`}</h2>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <RefreshButton onRefresh={load} />
         <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
           <option value="">All sources</option>
           <option value="Device">Device</option>
           <option value="Compliance">Compliance</option>
           <option value="Audit">Audit / Security</option>
         </select>
+        </div>
       </div>
       {loading && <p>Loading...</p>}
       {!loading && filteredAlerts.length === 0 && <p className="empty-state">No active alerts — everything looks normal.</p>}

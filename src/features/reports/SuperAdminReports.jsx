@@ -2,6 +2,7 @@
 // (Organization-level operational reports live in Reports.jsx for Org Admins.)
 
 import { Component, useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { getCustomReportMeta, getPlatformReport, runCustomReport } from "./reportService";
@@ -227,7 +228,7 @@ function PlatformReports({ token }) {
     if (controls.includes("dates")) { params.date_from = dateFrom; params.date_to = dateTo; }
     if (controls.includes("interval")) params.interval = interval;
     if (controls.includes("days")) params.days = days;
-    getPlatformReport(token, report.key, params)
+    return getPlatformReport(token, report.key, params)
       .then((d) => setData({ key: report.key, payload: d }))
       .catch((err) => { setData(null); setError(err.message); })
       .finally(() => setLoading(false));
@@ -237,6 +238,9 @@ function PlatformReports({ token }) {
 
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.8rem" }}>
+        <RefreshButton onRefresh={load} />
+      </div>
       <div className="report-grid" style={{ marginBottom: "1.2rem" }}>
         {REPORTS.map((r) => (
           <div
@@ -339,6 +343,15 @@ function CustomReportBuilder({ token }) {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  // Reload the org list / builder options and, if a report is showing, run it again for fresh rows.
+  async function handleRefresh() {
+    await Promise.all([
+      getCustomReportMeta(token).then(setMeta).catch(() => {}),
+      getAllOrganizations(token, { limit: 100 }).then((d) => setOrgs(d.organizations)).catch(() => {}),
+    ]);
+    if (result) await handleRun({ preventDefault() {} });
+  }
+
   async function handleRun(e) {
     e.preventDefault();
     if (columns.length === 0) { setError("Select at least one column"); return; }
@@ -423,6 +436,8 @@ function CustomReportBuilder({ token }) {
 
         <div style={{ marginTop: "1rem" }}>
           <button type="submit" disabled={running}>{running ? "Running..." : "Run report"}</button>
+          {" "}
+          <RefreshButton onRefresh={handleRefresh} />
         </div>
         {error && <p className="error-text">{error}</p>}
       </form>

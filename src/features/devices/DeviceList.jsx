@@ -1,6 +1,7 @@
 // Devices in one department: enrollment (bulk enroll, profiles, QR), search, device cards, details.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { DeviceCard } from "./DeviceCard";
 import { DeviceDetailsView } from "./DeviceDetails";
 import { generateEnrollmentToken, getDevices } from "./deviceService";
@@ -33,7 +34,7 @@ export function DevicesCardListView({ token, policies, organizationId, departmen
     const params = { organization_id: organizationId, department_id: departmentId, limit: 200 };
     const s = searchOverride !== undefined ? searchOverride : search;
     if (s) params.search = s;
-    getDevices(token, params)
+    return getDevices(token, params)
       .then((data) => setDevices(data.devices))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -93,7 +94,10 @@ export function DevicesCardListView({ token, policies, organizationId, departmen
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Devices — {departmentName}</h2>
-        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Departments</button>}
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <RefreshButton onRefresh={() => load()} />
+          {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Departments</button>}
+        </div>
       </div>
 
       {canCreateDevices && (

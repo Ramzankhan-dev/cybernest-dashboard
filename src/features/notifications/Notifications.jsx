@@ -1,6 +1,7 @@
 // Notification center: send / schedule notifications, stats, history with cancel / resend.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { KpiCard } from "../../components/common/KpiCard";
 import { getDepartments } from "../departments/departmentService";
 import {
@@ -34,7 +35,7 @@ export function NotificationCenterView({ token, devices, organizationId }) {
   function load() {
     const params = { page, limit: 30 };
     if (statusFilter) params.status = statusFilter;
-    Promise.all([getNotifications(token, params), getNotificationStats(token)])
+    return Promise.all([getNotifications(token, params), getNotificationStats(token)])
       .then(([n, s]) => { setSent(n.notifications); setTotal(n.total); setStats(s); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -110,7 +111,10 @@ export function NotificationCenterView({ token, devices, organizationId }) {
 
   return (
     <section>
-      <h2>Notification center</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Notification center</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
 
       {stats && (
         <div className="kpi-grid" style={{ marginBottom: "1.2rem" }}>

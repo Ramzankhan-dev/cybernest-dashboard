@@ -1,6 +1,7 @@
 // Departments: list / create / edit / delete, managers, policy assignment. Super Admin picks an organization first.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { createDepartment, deleteDepartment, getDepartments, updateDepartment } from "./departmentService";
 
@@ -10,12 +11,14 @@ export function DepartmentsOrgCardsView({ token, policies }) {
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  useEffect(() => {
-    getAllOrganizations(token, { limit: 100 })
+  function load() {
+    return getAllOrganizations(token, { limit: 100 })
       .then((data) => setOrgs(data.organizations))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   if (selectedOrg) {
     return (
@@ -31,7 +34,10 @@ export function DepartmentsOrgCardsView({ token, policies }) {
 
   return (
     <section>
-      <h2>Departments — by Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Departments — by Organization</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
@@ -75,7 +81,7 @@ export function DepartmentsView({ token, policies, organizationId, onBack, user 
     if (statusFilter) params.status = statusFilter;
     if (sort) params.sort = sort;
     if (organizationId) params.organization_id = organizationId;
-    getDepartments(token, params)
+    return getDepartments(token, params)
       .then((data) => { setDepartments(data.departments); setTotal(data.total); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -142,7 +148,10 @@ export function DepartmentsView({ token, policies, organizationId, onBack, user 
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Departments</h2>
-        {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <RefreshButton onRefresh={() => load()} />
+          {onBack && <button className="ghost-dark" onClick={onBack}>← Back to Organizations</button>}
+        </div>
       </div>
       {!isReadOnly && (
         <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>

@@ -1,6 +1,7 @@
 // Policies page: list, search, filter, and actions (edit, assign, duplicate, enable/disable, delete). Super Admin sees an organization picker first.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { PolicyAssignModal } from "./PolicyAssignment";
 import { PolicyFormModal } from "./PolicyForm";
@@ -200,7 +201,7 @@ export function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
   const [selectedOrg, setSelectedOrg] = useState(null);
 
   function loadOrgs() {
-    getAllOrganizations(token, { limit: 100 }).then((data) => setOrgs(data.organizations)).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    return getAllOrganizations(token, { limit: 100 }).then((data) => setOrgs(data.organizations)).catch((err) => setError(err.message)).finally(() => setLoading(false));
   }
 
   useEffect(() => { loadOrgs(); }, []);
@@ -220,7 +221,10 @@ export function PoliciesOrgCardsView({ token, showToast, onGlobalRefresh }) {
 
   return (
     <section>
-      <h2>Policies — Select an Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Policies — Select an Organization</h2>
+        <RefreshButton onRefresh={loadOrgs} />
+      </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.map((org) => (

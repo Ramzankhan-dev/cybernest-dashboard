@@ -20,7 +20,7 @@ import { ReportsView } from "../features/reports/Reports";
 import { SuperAdminReportsView } from "../features/reports/SuperAdminReports";
 import { SettingsView } from "../features/settings/Settings";
 
-export default function AppRoutes({ page, setPage, token, user, devices, policies, loadPolicies, showToast }) {
+export default function AppRoutes({ page, setPage, token, user, devices, policies, loadPolicies, refreshShared, showToast }) {
   return (
     <main>
       {page === "overview" && <DashboardOverview token={token} user={user} onNavigate={setPage} />}
@@ -38,13 +38,13 @@ export default function AppRoutes({ page, setPage, token, user, devices, policie
       {page === "commands" && <CommandCenterView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
       {page === "compliance" && <ComplianceView token={token} organizationId={user.organization_id} isSuperAdmin={user.is_super_admin} showToast={showToast} />}
       {page === "applications" && <ApplicationsView token={token} organizationId={user.organization_id} showToast={showToast} />}
-      {page === "alerts" && <AlertsView devices={devices} token={token} organizationId={user.organization_id} />}
+      {page === "alerts" && <AlertsView devices={devices} token={token} organizationId={user.organization_id} onRefreshDevices={refreshShared} />}
       {page === "profile" && <ProfileView token={token} user={user} />}
       {page === "settings" && <SettingsView token={token} organizationId={user.organization_id} policies={policies} showToast={showToast} />}
       {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} />}
       {page === "reports" && (user.is_super_admin
         ? <SuperAdminReportsView token={token} />
-        : <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} />)}
+        : <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} onRefreshShared={refreshShared} />)}
 
       {page === "devices" && (user.is_super_admin
         ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} user={user} />

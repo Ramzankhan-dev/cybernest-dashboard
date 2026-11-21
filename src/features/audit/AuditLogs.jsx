@@ -1,6 +1,7 @@
 // Audit logs: filters, stats, export (CSV/PDF). Super Admin picks an organization first.
 
 import { useEffect, useState } from "react";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { KpiCard } from "../../components/common/KpiCard";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
@@ -25,12 +26,14 @@ export function AuditLogsOrgCardsView({ token }) {
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  useEffect(() => {
-    getAllOrganizations(token, { limit: 100 })
+  function load() {
+    return getAllOrganizations(token, { limit: 100 })
       .then((data) => setOrgs(data.organizations))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   if (selectedOrg) {
     return (
@@ -44,7 +47,10 @@ export function AuditLogsOrgCardsView({ token }) {
 
   return (
     <section>
-      <h2>Audit Logs — Select an Organization</h2>
+      <div className="dash-header-row">
+        <h2 style={{ border: "none", margin: 0 }}>Audit Logs — Select an Organization</h2>
+        <RefreshButton onRefresh={load} />
+      </div>
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
       {!loading && orgs.length === 0 && <p className="empty-state">No organizations yet.</p>}
