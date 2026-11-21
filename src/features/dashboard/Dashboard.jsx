@@ -135,7 +135,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
             <KpiCard label="Active Organizations" value={summary.active_organizations} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("org")} />
             <KpiCard label="Suspended Organizations" value={summary.suspended_organizations} icon={IconAlertTriangle} tone="amber" onClick={() => onNavigate("org")} />
             <KpiCard label="Total Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
-            <KpiCard label="Rooted Devices" value={summary.rooted_devices} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("reports")} />
+            <KpiCard label="Critical Events (7 days)" value={summary.critical_events_7d} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("critical")} />
           </>
         ) : (
           <>
