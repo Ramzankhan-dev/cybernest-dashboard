@@ -65,7 +65,7 @@ export function OrganizationsAdminView({ token }) {
     if (employees > 0) blockers.push(`${employees} employee${employees === 1 ? "" : "s"}`);
     if (managers > 0) blockers.push(`${managers} manager${managers === 1 ? "" : "s"}`);
     if (blockers.length > 0) {
-      setError(`Cannot delete "${org.name}" — it still has ${blockers.join(", ")}. Remove or reassign them first.`);
+      window.alert(`Cannot delete "${org.name}".\n\nIt still has ${blockers.join(", ")}.\nPlease delete or remove them first, then try again.`);
       return;
     }
     if (!window.confirm(`Are you sure you want to delete "${org.name}"?\n\nThis will permanently remove the organization and its dashboard users from the database. This cannot be undone.`)) return;
@@ -74,7 +74,9 @@ export function OrganizationsAdminView({ token }) {
       await deleteOrganization(token, org.id);
       load();
     } catch (err) {
-      setError(err.message);
+      // Server-side block (e.g. records added since the list loaded) — show it as a popup too
+      window.alert(err.message);
+      load();
     }
   }
 
