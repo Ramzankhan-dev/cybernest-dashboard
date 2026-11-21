@@ -8,7 +8,7 @@
   margin-bottom: 0;
 }
 
-.chart-card { padding: 1.2rem 1.3rem 1rem; min-width: 0; }
+.chart-card { padding: 1.2rem 1.3rem 1rem; min-width: 0; container-type: inline-size; }
 .chart-card h4 { margin: 0; font-size: 0.95rem; color: var(--text-primary); }
 
 .donut-wrap { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: center; gap: 1.1rem; }
@@ -38,3 +38,9 @@
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
 .legend-value { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .legend-pct { color: var(--text-muted); font-weight: 500; margin-left: 0.3rem; font-size: 0.76rem; }
+
+/* When a chart card is narrow, stack the donut above its legend instead of squeezing the legend text. */
+@container (max-width: 400px) {
+  .donut-wrap { grid-template-columns: 1fr; justify-items: center; }
+  .chart-legend { width: 100%; }
+}

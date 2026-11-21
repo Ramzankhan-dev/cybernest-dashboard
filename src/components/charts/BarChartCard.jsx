@@ -12,6 +12,7 @@ import {
 import { chartTooltipProps } from "../../config/chartThemes";
 
 export function BarChartCard({ title, subtitle, data, dataKeyX, gradientId, gradient, chartTheme }) {
+  const crowded = (data || []).length > 5; // many categories: tilt labels so they never overlap
   return (
     <div className="chart-card">
       <div className="card-header">
@@ -33,8 +34,10 @@ export function BarChartCard({ title, subtitle, data, dataKeyX, gradientId, grad
             dataKey={dataKeyX}
             fontSize={11}
             interval={0}
-            height={34}
-            tickFormatter={(v) => { const t = String(v ?? ""); return t.length > 10 ? `${t.slice(0, 9)}…` : t; }}
+            height={crowded ? 62 : 34}
+            angle={crowded ? -35 : 0}
+            textAnchor={crowded ? "end" : "middle"}
+            tickFormatter={(v) => { const t = String(v ?? ""); return t.length > 12 ? `${t.slice(0, 11)}…` : t; }}
             tick={{ fill: chartTheme.axis }}
             axisLine={false}
             tickLine={false}

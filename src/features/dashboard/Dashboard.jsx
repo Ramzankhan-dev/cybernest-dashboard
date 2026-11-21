@@ -184,41 +184,6 @@ export function DashboardOverview({ token, user, onNavigate }) {
             </div>
             <HealthRing value={avgBattery} label="Average battery across fleet" chartTheme={chartTheme} />
           </div>
-
-          <div className="chart-grid">
-            <DonutChartCard
-              title="Device Status"
-              subtitle="Online vs offline right now"
-              data={deviceStatusData}
-              colors={chartTheme.series}
-              centerLabel="devices"
-            />
-            <DonutChartCard
-              title="Policy Compliance"
-              subtitle="Across assigned devices"
-              data={complianceData}
-              colors={chartTheme.series}
-              centerLabel="checked"
-            />
-            <BarChartCard
-              title="Android Versions"
-              subtitle="Devices per OS version"
-              data={charts.android_versions}
-              dataKeyX="version"
-              gradientId="cnBarAndroid"
-              gradient={chartTheme.barPrimary}
-              chartTheme={chartTheme}
-            />
-            <BarChartCard
-              title={isSA ? "Devices per Organization" : "Device Distribution (by Department)"}
-              subtitle={isSA ? "Enrolled devices in each organization" : "Devices per department"}
-              data={charts.device_distribution}
-              dataKeyX="department"
-              gradientId="cnBarDept"
-              gradient={chartTheme.barSecondary}
-              chartTheme={chartTheme}
-            />
-          </div>
         </div>
 
         <div className="dash-side-col">
@@ -269,6 +234,41 @@ export function DashboardOverview({ token, user, onNavigate }) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="chart-grid" style={{ marginBottom: "1.25rem" }}>
+        <DonutChartCard
+          title="Device Status"
+          subtitle="Online vs offline right now"
+          data={deviceStatusData}
+          colors={chartTheme.series}
+          centerLabel="devices"
+        />
+        <DonutChartCard
+          title="Policy Compliance"
+          subtitle="Across assigned devices"
+          data={complianceData}
+          colors={chartTheme.series}
+          centerLabel="checked"
+        />
+        <BarChartCard
+          title="Android Versions"
+          subtitle="Devices per OS version"
+          data={charts.android_versions}
+          dataKeyX="version"
+          gradientId="cnBarAndroid"
+          gradient={chartTheme.barPrimary}
+          chartTheme={chartTheme}
+        />
+        <BarChartCard
+          title={isSA ? "Devices per Organization" : "Device Distribution (by Department)"}
+          subtitle={isSA ? "Enrolled devices in each organization" : "Devices per department"}
+          data={charts.device_distribution}
+          dataKeyX="department"
+          gradientId="cnBarDept"
+          gradient={chartTheme.barSecondary}
+          chartTheme={chartTheme}
+        />
       </div>
 
       <div className="dash-card">
