@@ -25,8 +25,8 @@ export function DonutChartCard({ title, subtitle, data, colors, centerLabel }) {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={54}
-                outerRadius={78}
+                innerRadius={52}
+                outerRadius={72}
                 paddingAngle={total > 0 && data.filter((d) => d.value > 0).length > 1 ? 3 : 0}
                 cornerRadius={6}
                 stroke="none"

@@ -13,6 +13,9 @@ import {
   IconBell,
   IconBuilding,
   IconClock,
+  IconFolder,
+  IconScroll,
+  IconUsers,
   IconMegaphone,
   IconRefresh,
   IconShieldAlert,
@@ -101,6 +104,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
   const offlinePct = percentOf(summary.offline_devices, summary.total_devices);
   const compliancePct = charts ? percentOf(charts.policy_compliance.compliant, (Number(charts.policy_compliance.compliant) || 0) + (Number(charts.policy_compliance.non_compliant) || 0)) : null;
   const avgBattery = charts?.device_health?.avg_battery;
+  const isSA = !!user.is_super_admin;
 
   return (
     <section>
@@ -125,11 +129,23 @@ export function DashboardOverview({ token, user, onNavigate }) {
         <KpiCard label="Total Devices" value={summary.total_devices} icon={IconSmartphone} tone="violet" onClick={() => onNavigate("devices")} />
         <KpiCard label="Online Devices" value={summary.online_devices} icon={IconWifi} tone="mint" hint={onlinePct != null ? `${onlinePct}% of fleet` : null} onClick={() => onNavigate("devices")} />
         <KpiCard label="Offline Devices" value={summary.offline_devices} icon={IconWifiOff} tone="rose" hint={offlinePct != null ? `${offlinePct}% of fleet` : null} onClick={() => onNavigate("devices")} />
-        <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
-        <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("alerts")} />
-        <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("activity")} />
-        <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
-        <KpiCard label="Organizations" value={summary.total_organizations} icon={IconBuilding} tone="cyan" onClick={() => onNavigate("org")} />
+        {isSA ? (
+          <>
+            <KpiCard label="Organizations" value={summary.total_organizations} icon={IconBuilding} tone="cyan" onClick={() => onNavigate("org")} />
+            <KpiCard label="Active Organizations" value={summary.active_organizations} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("org")} />
+            <KpiCard label="Suspended Organizations" value={summary.suspended_organizations} icon={IconAlertTriangle} tone="amber" onClick={() => onNavigate("org")} />
+            <KpiCard label="Total Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
+            <KpiCard label="Rooted Devices" value={summary.rooted_devices} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("reports")} />
+          </>
+        ) : (
+          <>
+            <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
+            <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("alerts")} />
+            <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("activity")} />
+            <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
+            <KpiCard label="Organizations" value={summary.total_organizations} icon={IconBuilding} tone="cyan" onClick={() => onNavigate("org")} />
+          </>
+        )}
       </div>
 
       <div className="dash-layout">
@@ -149,10 +165,17 @@ export function DashboardOverview({ token, user, onNavigate }) {
                   <strong>{compliancePct != null ? `${compliancePct}%` : "—"}</strong>
                   <span>Policy compliant</span>
                 </div>
-                <div className="hero-stat">
-                  <strong>{summary.pending_commands ?? "—"}</strong>
-                  <span>Pending commands</span>
-                </div>
+                {isSA ? (
+                  <div className="hero-stat">
+                    <strong>{summary.active_organizations ?? "—"} / {summary.total_organizations ?? "—"}</strong>
+                    <span>Active organizations</span>
+                  </div>
+                ) : (
+                  <div className="hero-stat">
+                    <strong>{summary.pending_commands ?? "—"}</strong>
+                    <span>Pending commands</span>
+                  </div>
+                )}
               </div>
               <div className="hero-actions">
                 <button className="hero-btn" onClick={() => onNavigate("devices")}>View devices <IconArrowRight size={15} /></button>
@@ -187,8 +210,8 @@ export function DashboardOverview({ token, user, onNavigate }) {
               chartTheme={chartTheme}
             />
             <BarChartCard
-              title="Device Distribution (by Department)"
-              subtitle="Devices per department"
+              title={isSA ? "Devices per Organization" : "Device Distribution (by Department)"}
+              subtitle={isSA ? "Enrolled devices in each organization" : "Devices per department"}
               data={charts.device_distribution}
               dataKeyX="department"
               gradientId="cnBarDept"
@@ -202,12 +225,12 @@ export function DashboardOverview({ token, user, onNavigate }) {
           <div className="dash-card">
             <div className="card-header">
               <div>
-                <h3>Security Alerts</h3>
-                <p className="card-subtitle">{alerts.length > 0 ? `${alerts.length} active` : "All clear"}</p>
+                <h3>{isSA ? "Critical Security Events" : "Security Alerts"}</h3>
+                <p className="card-subtitle">{alerts.length > 0 ? (isSA ? `Latest ${alerts.length} across all organizations` : `${alerts.length} active`) : "All clear"}</p>
               </div>
-              <button className="card-link" onClick={() => onNavigate("alerts")}>View all</button>
+              <button className="card-link" onClick={() => onNavigate(isSA ? "activity" : "alerts")}>View all</button>
             </div>
-            {alerts.length === 0 && <p className="empty-state">No active alerts.</p>}
+            {alerts.length === 0 && <p className="empty-state">{isSA ? "No critical events." : "No active alerts."}</p>}
             <div className="alert-scroll">
               {alerts.slice(0, 8).map((a, i) => (
                 <div key={i} className="alert-card" style={{ marginBottom: "0.5rem" }}>
@@ -225,14 +248,25 @@ export function DashboardOverview({ token, user, onNavigate }) {
             <div className="card-header">
               <h3>Quick Actions</h3>
             </div>
-            <div className="quick-actions qa-tiles">
-              <button className="tone-violet" onClick={() => onNavigate("devices")}><span className="qa-icon"><IconSmartphone size={19} /></span>Enroll Device</button>
-              <button className="tone-mint" onClick={() => onNavigate("employees")}><span className="qa-icon"><IconUserPlus size={19} /></span>Add Employee</button>
-              <button className="tone-indigo" onClick={() => onNavigate("departments")}><span className="qa-icon"><IconShieldCheck size={19} /></span>Create Policy</button>
-              <button className="tone-rose" onClick={() => onNavigate("notifications")}><span className="qa-icon"><IconMegaphone size={19} /></span>Send Notification</button>
-              <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
-              <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
-            </div>
+            {isSA ? (
+              <div className="quick-actions qa-tiles">
+                <button className="tone-violet" onClick={() => onNavigate("org")}><span className="qa-icon"><IconBuilding size={19} /></span>Create Organization</button>
+                <button className="tone-mint" onClick={() => onNavigate("departments")}><span className="qa-icon"><IconFolder size={19} /></span>View Departments</button>
+                <button className="tone-indigo" onClick={() => onNavigate("devices")}><span className="qa-icon"><IconSmartphone size={19} /></span>View Devices</button>
+                <button className="tone-rose" onClick={() => onNavigate("activity")}><span className="qa-icon"><IconScroll size={19} /></span>Audit Logs</button>
+                <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
+                <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
+              </div>
+            ) : (
+              <div className="quick-actions qa-tiles">
+                <button className="tone-violet" onClick={() => onNavigate("devices")}><span className="qa-icon"><IconSmartphone size={19} /></span>Enroll Device</button>
+                <button className="tone-mint" onClick={() => onNavigate("employees")}><span className="qa-icon"><IconUserPlus size={19} /></span>Add Employee</button>
+                <button className="tone-indigo" onClick={() => onNavigate("departments")}><span className="qa-icon"><IconShieldCheck size={19} /></span>Create Policy</button>
+                <button className="tone-rose" onClick={() => onNavigate("notifications")}><span className="qa-icon"><IconMegaphone size={19} /></span>Send Notification</button>
+                <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
+                <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -241,17 +275,17 @@ export function DashboardOverview({ token, user, onNavigate }) {
         <div className="card-header">
           <div>
             <h3>Recent Activities</h3>
-            <p className="card-subtitle">Latest commands issued to devices</p>
+            <p className="card-subtitle">{isSA ? "Latest activity across the platform" : "Latest commands issued to devices"}</p>
           </div>
         </div>
         {activity.length === 0 && <p className="empty-state">No recent activity.</p>}
         {activity.length > 0 && (
           <div className="table-scroll"><table>
-            <thead><tr><th>Time</th><th>Activity</th><th>Device</th></tr></thead>
+            <thead><tr><th>Time</th><th>Activity</th><th>{isSA ? "Organization / User" : "Device"}</th></tr></thead>
             <tbody>
               {activity.map((a) => (
                 <tr key={a.id}>
-                  <td className="mono" style={{ color: "var(--text-muted)" }}>{new Date(a.issued_at).toLocaleTimeString()}</td>
+                  <td className="mono" style={{ color: "var(--text-muted)" }}>{isSA ? new Date(a.issued_at).toLocaleString() : new Date(a.issued_at).toLocaleTimeString()}</td>
                   <td><span className="badge">{a.command_type}</span></td>
                   <td>{a.employee_name || a.device_uid}</td>
                 </tr>

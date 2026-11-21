@@ -91,6 +91,7 @@
 .search-result-empty { padding: 0.9rem; font-size: 0.87rem; color: var(--text-muted); }
 
 .topbar-right {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.75rem;
