@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ThemeToggle } from "../../components/common/ThemeToggle";
-import { BrandMark } from "../../components/icons";
+import { BrandMark, IconEye, IconEyeOff } from "../../components/icons";
 import { ForgotPasswordFlow } from "./ForgotPassword";
 import { LoginAside } from "./LoginBrandPanel";
 import { login } from "./authService";
@@ -14,6 +14,7 @@ export function LoginScreen({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -66,12 +67,23 @@ export function LoginScreen({ onLogin }) {
         />
 
         <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="password-field">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+          </button>
+        </div>
 
         {error && <p className="error-text">{error}</p>}
 

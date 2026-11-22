@@ -199,6 +199,22 @@ export const IconLogOut = (p) => (
   </Svg>
 );
 
+export const IconEye = (p) => (
+  <Svg {...p}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+
+export const IconEyeOff = (p) => (
+  <Svg {...p}>
+    <path d="M9.9 4.24A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.17 4.19" />
+    <path d="M6.61 6.61A17.5 17.5 0 0 0 2 12s3.5 7 10 7a10.2 10.2 0 0 0 5.39-1.61" />
+    <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+    <path d="M2 2l20 20" />
+  </Svg>
+);
+
 export const IconRefresh = (p) => (
   <Svg {...p}>
     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
