@@ -54,6 +54,14 @@ export function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, 
           </button>
         )}
         <button className="ghost-dark" onClick={loadApps}>Refresh list</button>
+        {!loading && (
+          <span
+            title={`${apps.length} app(s) on this device`}
+            style={{ marginLeft: "auto", alignSelf: "center", fontSize: "0.8rem", fontWeight: 600, padding: "0.15rem 0.7rem", borderRadius: "999px", background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--text-muted)" }}
+          >
+            Total apps: {apps.length}
+          </span>
+        )}
       </div>
       {loading && <p>Loading...</p>}
       {!loading && apps.length === 0 && (
