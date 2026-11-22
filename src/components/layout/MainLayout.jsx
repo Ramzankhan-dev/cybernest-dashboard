@@ -62,7 +62,7 @@ export default function MainLayout({ token, user, onLogout }) {
   // The first fetch only sets the baseline, so old requests don't pop up on login.
   const lastRequestId = useRef(null);
   useEffect(() => {
-    if (user.is_super_admin || user.role !== "OrganizationAdmin") return;
+    if (user.is_super_admin || (user.role !== "OrganizationAdmin" && user.role !== "DepartmentManager")) return;
     let stopped = false;
     async function checkRequests() {
       try {
