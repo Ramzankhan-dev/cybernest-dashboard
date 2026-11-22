@@ -70,6 +70,24 @@ export async function assignApplication(token, id, target) {
   return data;
 }
 
+export async function getApplicationAssignments(token, id) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/assignments`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load assignments");
+  return data;
+}
+
+export async function unassignApplication(token, id, target) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/unassign`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(target),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to unassign application");
+  return data;
+}
+
 export async function blockApplication(token, id) {
   const res = await fetch(`${BASE_URL}/api/applications/${id}/block`, {
     method: "PATCH",
