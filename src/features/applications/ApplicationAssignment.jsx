@@ -186,7 +186,7 @@ export function ApplicationAssignModal({ app, token, organizationId, onClose }) 
             </div>
 
             <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.5rem 0 0" }}>
-              The app is installed on every selected device.{app.install_type === "Required" ? " It is Required — it is reinstalled automatically if the user removes it." : ""}
+              The app is installed on every selected device.{app.install_type === "Required" ? " It is Required — it is reinstalled automatically if the user removes it." : app.install_type === "Locked" ? " It is Locked — the user cannot uninstall it." : ""}
             </p>
             {error && <p className="error-text">{error}</p>}
             {result && (

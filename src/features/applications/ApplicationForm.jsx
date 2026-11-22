@@ -90,16 +90,17 @@ export function ApplicationFormModal({ initial, token, organizationId, onClose, 
           <label>Version (optional — read from the APK if blank)</label>
           <input type="text" value={form.version} onChange={(e) => set("version", e.target.value)} placeholder="1.0.0" />
 
+          <label>Install Type</label>
+          <select value={form.install_type} onChange={(e) => set("install_type", e.target.value)}>
+            <option value="Required">Required — reinstalled automatically if removed</option>
+            <option value="Optional">Optional</option>
+            <option value="Locked">Locked — user cannot uninstall it</option>
+          </select>
+
           <label>Category</label>
           <select value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="Enterprise">Enterprise</option>
             <option value="Public">Public</option>
-          </select>
-
-          <label>Install Type</label>
-          <select value={form.install_type} onChange={(e) => set("install_type", e.target.value)}>
-            <option value="Required">Required</option>
-            <option value="Optional">Optional</option>
           </select>
 
           {error && <p className="error-text">{error}</p>}
