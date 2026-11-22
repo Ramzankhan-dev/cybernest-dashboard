@@ -405,8 +405,16 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
                 <td>{e.phone_number || "—"}</td>
                 {canCreateEmployees && (
                   <td>
-                    <select value={e.department_id} disabled={acting !== null} onChange={(ev) => handleDepartmentChange(e, ev.target.value)}>
-                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {/* A Department Manager only shows (and stays in) the department they manage. */}
+                    <select
+                      value={e.department_id}
+                      disabled={acting !== null || e.role === "DepartmentManager"}
+                      title={e.role === "DepartmentManager" ? "Department Manager — change the role first to move to another department" : undefined}
+                      onChange={(ev) => handleDepartmentChange(e, ev.target.value)}
+                    >
+                      {departments
+                        .filter((d) => e.role !== "DepartmentManager" || String(d.id) === String(e.department_id))
+                        .map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </td>
                 )}
