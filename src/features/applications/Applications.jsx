@@ -88,7 +88,15 @@ export function ApplicationsView({ token, organizationId, showToast }) {
   return (
     <section>
       <div className="dash-header-row">
-        <h2 style={{ border: "none", margin: 0 }}>Applications</h2>
+        <h2 style={{ border: "none", margin: 0, display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          Applications
+          <span
+            title={`${total} application(s) in the current list`}
+            style={{ fontSize: "0.8rem", fontWeight: 600, padding: "0.1rem 0.6rem", borderRadius: "999px", background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--text-muted)" }}
+          >
+            {total}
+          </span>
+        </h2>
         <button onClick={() => { setEditingApp(null); setShowFormModal(true); }}>+ Add Application</button>
       </div>
 

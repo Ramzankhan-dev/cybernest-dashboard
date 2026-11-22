@@ -63,10 +63,11 @@ export function LocationPanel({ device, token, onCommandSent, readOnly }) {
   async function handleSaveGeofence(e) {
     e.preventDefault();
     if (!geoLat || !geoLng || !geoRadius) { setGeoError("Latitude, longitude, and radius are all required"); return; }
+    if (!(Number(geoRadius) >= 1)) { setGeoError("Radius must be at least 1 meter"); return; }
     setSavingGeo(true);
     setGeoError("");
     try {
-      await setGeofence(token, device.device_uid, { lat: parseFloat(geoLat), lng: parseFloat(geoLng), radiusMeters: parseInt(geoRadius, 10) });
+      await setGeofence(token, device.device_uid, { lat: parseFloat(geoLat), lng: parseFloat(geoLng), radiusMeters: Math.round(Number(geoRadius)) });
       setGeoEnabled(true);
       onCommandSent("Geofence saved");
     } catch (err) {
@@ -140,7 +141,7 @@ export function LocationPanel({ device, token, onCommandSent, readOnly }) {
           <input value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} placeholder="e.g. 200" type="number" />
           {geoRadius && Number(geoRadius) < 100 && (
             <p style={{ fontSize: "0.74rem", color: "var(--amber)", margin: "0.3rem 0 0" }}>
-              ⚠️ Android's geofencing isn't reliable below ~100m — GPS/Wi-Fi location accuracy alone can be off by 20-50m, so smaller radii often won't trigger.
+              ⚠️ Small radii (e.g. 15–50m) can be saved for testing/demos, but Android's geofencing isn't reliable below ~100m — GPS/Wi-Fi location accuracy alone can be off by 20-50m, so the alert may be delayed or missed.
             </p>
           )}
           {geoError && <p className="error-text">{geoError}</p>}
