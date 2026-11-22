@@ -73,6 +73,16 @@ export default function MainLayout({ token, user, onLogout }) {
     setTimeout(() => setToast(null), 3500);
   }
 
+  // Every page's "Refresh" button also reloads the shared lists (devices,
+  // policies), so no page is left showing stale data.
+  function handleRefreshClick(e) {
+    const btn = e.target.closest && e.target.closest("button");
+    if (btn && btn.textContent.trim().endsWith("Refresh")) {
+      loadDevices();
+      loadPolicies();
+    }
+  }
+
   const visibleNavItems = getVisibleNavItems(user);
   const roleLabel = getRoleLabel(user);
   const userInitials = getUserInitials(user);
@@ -90,7 +100,7 @@ export default function MainLayout({ token, user, onLogout }) {
         userInitials={userInitials}
       />
 
-      <div className="main-area">
+      <div className="main-area" onClickCapture={handleRefreshClick}>
         <Header
           token={token}
           user={user}
