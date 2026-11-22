@@ -46,6 +46,8 @@ export default function App() {
   const [refreshToken, setRefreshToken] = useState(session ? session.refreshToken : null);
 
   function handleLogin(newToken, newUser, newRefreshToken) {
+    // A fresh login always lands on the Dashboard, never on a page left in the URL / history.
+    try { window.history.replaceState({ page: "overview" }, "", "#overview"); } catch { /* ignore */ }
     setToken(newToken);
     setUser(newUser);
     setRefreshToken(newRefreshToken);
