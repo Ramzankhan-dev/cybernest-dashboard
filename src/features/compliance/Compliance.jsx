@@ -80,7 +80,7 @@ export function ComplianceView({ token, organizationId, isSuperAdmin, showToast 
           <option value="non-compliant">Non-Compliant</option>
           <option value="pending-sync">Pending Sync</option>
           <option value="policy-failed">Policy Failed</option>
-          <option value="unknown">Unknown</option>
+          <option value="no-policy">No Policy</option>
         </select>
         <button type="submit">Search</button>
         <button type="button" className="ghost-dark" onClick={load}>Refresh</button>
