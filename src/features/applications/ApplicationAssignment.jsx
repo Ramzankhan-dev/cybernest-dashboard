@@ -185,16 +185,9 @@ export function ApplicationAssignModal({ app, token, organizationId, onClose }) 
               ))}
             </div>
 
-            {app.category !== "Restricted" && (
-              <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.5rem 0 0" }}>
-                The app is installed on every selected device.
-              </p>
-            )}
-            {app.category === "Restricted" && (
-              <p style={{ fontSize: "0.7rem", color: "var(--amber)", margin: "0.5rem 0 0" }}>
-                This is a Restricted app — assigning it will block it on the selected device(s) that have it installed.
-              </p>
-            )}
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.5rem 0 0" }}>
+              The app is installed on every selected device.{app.install_type === "Required" ? " It is Required — it is reinstalled automatically if the user removes it." : ""}
+            </p>
             {error && <p className="error-text">{error}</p>}
             {result && (
               <>

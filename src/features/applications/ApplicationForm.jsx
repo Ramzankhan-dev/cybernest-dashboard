@@ -34,9 +34,10 @@ export function ApplicationFormModal({ initial, token, organizationId, onClose, 
     setProgress(0);
     setError("");
     try {
-      if (initial) await updateApplication(token, initial.id, form, file, setProgress);
-      else await createApplication(token, { ...form, organization_id: organizationId }, file, setProgress);
-      onSaved();
+      const data = initial
+        ? await updateApplication(token, initial.id, form, file, setProgress)
+        : await createApplication(token, { ...form, organization_id: organizationId }, file, setProgress);
+      onSaved(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -65,7 +66,7 @@ export function ApplicationFormModal({ initial, token, organizationId, onClose, 
             {file
               ? `📦 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`
               : initial
-                ? "Optional: drop a new .apk here to attach or replace the APK"
+                ? "Optional: drop an .apk here to attach or replace it (the package name is corrected from the APK if it differs)"
                 : "Drag & drop an .apk here, or click to browse *"}
             <input
               id="apk-file-input"
@@ -93,14 +94,12 @@ export function ApplicationFormModal({ initial, token, organizationId, onClose, 
           <select value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="Enterprise">Enterprise</option>
             <option value="Public">Public</option>
-            <option value="Restricted">Restricted</option>
           </select>
 
           <label>Install Type</label>
           <select value={form.install_type} onChange={(e) => set("install_type", e.target.value)}>
             <option value="Required">Required</option>
             <option value="Optional">Optional</option>
-            <option value="Blocked">Blocked</option>
           </select>
 
           {error && <p className="error-text">{error}</p>}

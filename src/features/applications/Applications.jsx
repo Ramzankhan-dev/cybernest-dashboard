@@ -109,7 +109,6 @@ export function ApplicationsView({ token, organizationId, showToast }) {
           <option value="">All categories</option>
           <option value="Enterprise">Enterprise</option>
           <option value="Public">Public</option>
-          <option value="Restricted">Restricted</option>
         </select>
         <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
           <option value="">All statuses</option>
@@ -191,7 +190,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
           token={token}
           organizationId={organizationId}
           onClose={() => setShowFormModal(false)}
-          onSaved={() => { setShowFormModal(false); load(); }}
+          onSaved={(data) => { setShowFormModal(false); if (data && data.message) showToast(data.message); load(); }}
         />
       )}
 
