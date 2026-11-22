@@ -62,11 +62,12 @@ export function ComplianceView({ token, organizationId, isSuperAdmin, showToast 
 
       {summary && (
         <div className="kpi-grid" style={{ marginBottom: "1.2rem" }}>
-          <KpiCard label="Total Devices" value={summary.total_devices} />
+          <KpiCard label="Devices with Policy" value={summary.total_devices} />
           <KpiCard label="Compliant" value={summary.compliant_devices} />
           <KpiCard label="Non-Compliant" value={summary.non_compliant_devices} />
           <KpiCard label="Pending Sync" value={summary.pending_sync} />
           <KpiCard label="Failed Policies" value={summary.failed_policies} />
+          <KpiCard label="No Policy" value={summary.unassigned_devices ?? 0} />
           <KpiCard label="Compliance %" value={`${summary.compliance_percentage}%`} />
         </div>
       )}
@@ -87,7 +88,7 @@ export function ComplianceView({ token, organizationId, isSuperAdmin, showToast 
 
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
-      {!loading && rows.length === 0 && <p className="empty-state">No devices with a policy assignment yet.</p>}
+      {!loading && rows.length === 0 && <p className="empty-state">No devices found.</p>}
       {!loading && rows.length > 0 && (
         <div className="table-scroll"><table>
           <thead>
