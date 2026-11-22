@@ -74,3 +74,13 @@ export async function getCommandStatus(token, commandId) {
   if (!res.ok) throw new Error(data.error || "Failed to check install status");
   return data;
 }
+
+export async function resendCommand(token, id) {
+  const res = await fetch(`${BASE_URL}/api/commands/${id}/resend`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to resend command");
+  return data;
+}

@@ -5,7 +5,7 @@ import { RefreshButton } from "../../components/common/RefreshButton";
 import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
-import { cancelCommand, getActivityLogs, retryCommand, sendCommandMulti } from "./commandService";
+import { cancelCommand, getActivityLogs, resendCommand, retryCommand, sendCommandMulti } from "./commandService";
 
 export function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
   const [tab, setTab] = useState("pending");
@@ -100,6 +100,7 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
     setActing(cmd.id);
     try {
       await cancelCommand(token, cmd.id);
+      showToast("Command cancelled");
       load();
     } catch (err) {
       showToast(err.message, true);
@@ -113,6 +114,19 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
     try {
       await retryCommand(token, cmd.id);
       showToast("Command retried");
+      load();
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function handleResend(cmd) {
+    setActing(cmd.id);
+    try {
+      await resendCommand(token, cmd.id);
+      showToast("Command resent");
       load();
     } catch (err) {
       showToast(err.message, true);
@@ -223,6 +237,7 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
                 {!isSuperAdmin && (
                   <td className="actions">
                     {c.status === "pending" && <button disabled={acting !== null} onClick={() => handleCancel(c)}>Cancel</button>}
+                    {c.status === "executed" && !["block_app", "unblock_app", "install_app", "uninstall_app"].includes(c.command_type) && <button disabled={acting !== null} onClick={() => handleResend(c)}>Resend</button>}
                     {c.status === "failed" && <button disabled={acting !== null} onClick={() => handleRetry(c)}>Retry</button>}
                   </td>
                 )}
