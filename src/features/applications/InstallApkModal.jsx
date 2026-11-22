@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { IconX } from "../../components/icons";
 import { getCommandStatus } from "../commands/commandService";
 import { getDevices } from "../devices/deviceService";
+import { isDeviceOnline } from "../devices/deviceUtils";
 import { installApplication } from "./applicationService";
 
 export function InstallApkModal({ app, token, organizationId, onClose, showToast }) {
   const [devices, setDevices] = useState([]);
   const [deviceUid, setDeviceUid] = useState("");
+  const [deviceSearch, setDeviceSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [commandId, setCommandId] = useState(null);
@@ -42,6 +44,11 @@ export function InstallApkModal({ app, token, organizationId, onClose, showToast
     return () => clearInterval(interval);
   }, [commandId, status]);
 
+  const q = deviceSearch.trim().toLowerCase();
+  const filteredDevices = devices.filter((d) =>
+    !q || [d.model, d.employee_name, d.device_uid].some((v) => v && String(v).toLowerCase().includes(q))
+  );
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!deviceUid) { setError("Select a device"); return; }
@@ -49,6 +56,7 @@ export function InstallApkModal({ app, token, organizationId, onClose, showToast
     setError("");
     try {
       const result = await installApplication(token, app.id, deviceUid);
+      showToast(result.message);
       setCommandId(result.command_id);
       setStatus("sent");
     } catch (err) {
@@ -75,10 +83,48 @@ export function InstallApkModal({ app, token, organizationId, onClose, showToast
         </p>
         <form onSubmit={handleSubmit} className="modal-form">
           <label>Device</label>
-          <select value={deviceUid} onChange={(e) => setDeviceUid(e.target.value)} disabled={commandId !== null}>
-            <option value="">Select device…</option>
-            {devices.map((d) => <option key={d.id} value={d.device_uid}>{d.model || d.device_uid}</option>)}
-          </select>
+          <input
+            type="text"
+            placeholder="Search by model, employee or device ID…"
+            value={deviceSearch}
+            onChange={(e) => setDeviceSearch(e.target.value)}
+            disabled={commandId !== null}
+          />
+          <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "0.4rem" }}>
+            {filteredDevices.length === 0 && (
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.8rem", textAlign: "center" }}>No devices found.</p>
+            )}
+            {filteredDevices.map((d) => {
+              const online = isDeviceOnline(d);
+              return (
+                <label
+                  key={d.id}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.55rem 0.7rem",
+                    cursor: commandId !== null ? "default" : "pointer",
+                    background: deviceUid === d.device_uid ? "var(--surface-alt)" : "transparent",
+                    borderBottom: "1px solid var(--border)", margin: 0,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="install-device"
+                    checked={deviceUid === d.device_uid}
+                    onChange={() => setDeviceUid(d.device_uid)}
+                    disabled={commandId !== null}
+                    style={{ width: "auto", margin: 0 }}
+                  />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: "0.85rem" }}>{d.model || d.device_uid}</span>
+                    <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                      {d.employee_name || "Unassigned"} · {d.device_uid}
+                    </span>
+                  </span>
+                  <span className={`badge ${online ? "active" : "setup"}`}>{online ? "Online" : "Offline"}</span>
+                </label>
+              );
+            })}
+          </div>
           {error && <p className="error-text">{error}</p>}
 
           {statusLabel() && (

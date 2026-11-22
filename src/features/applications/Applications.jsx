@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { KpiCard } from "../../components/common/KpiCard";
 import { ApplicationAssignModal } from "./ApplicationAssignment";
 import { ApplicationFormModal } from "./ApplicationForm";
+import { DeleteApplicationModal } from "./DeleteApplicationModal";
 import { InstallApkModal } from "./InstallApkModal";
 import {
   allowApplication,
@@ -28,6 +29,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
   const [editingApp, setEditingApp] = useState(null);
   const [assigningApp, setAssigningApp] = useState(null);
   const [installingApp, setInstallingApp] = useState(null);
+  const [deletingApp, setDeletingApp] = useState(null);
   const [installHistory, setInstallHistory] = useState([]);
 
   function loadInstallHistory() {
@@ -71,11 +73,13 @@ export function ApplicationsView({ token, organizationId, showToast }) {
     }
   }
 
-  async function handleDelete(app) {
-    if (!window.confirm(`Delete "${app.name}" and its uploaded APK?`)) return;
+  async function handleConfirmDelete() {
     try {
-      await deleteApplication(token, app.id);
+      const data = await deleteApplication(token, deletingApp.id);
+      showToast(data.message);
+      setDeletingApp(null);
       load();
+      loadInstallHistory();
     } catch (err) {
       showToast(err.message, true);
     }
@@ -141,7 +145,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
                   <button onClick={() => { setEditingApp(a); setShowFormModal(true); }}>Edit</button>
                   <button onClick={() => setAssigningApp(a)}>Assign</button>
                   <button onClick={() => handleToggleBlock(a)}>{a.status === "active" ? "Block" : "Unblock"}</button>
-                  <button className="danger" onClick={() => handleDelete(a)}>Delete</button>
+                  <button className="danger" onClick={() => setDeletingApp(a)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -199,6 +203,10 @@ export function ApplicationsView({ token, organizationId, showToast }) {
           showToast={showToast}
           onClose={(refresh) => { setAssigningApp(null); if (refresh) load(); }}
         />
+      )}
+
+      {deletingApp && (
+        <DeleteApplicationModal app={deletingApp} onConfirm={handleConfirmDelete} onClose={() => setDeletingApp(null)} />
       )}
 
       {installingApp && (
