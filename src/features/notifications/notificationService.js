@@ -60,3 +60,11 @@ export async function getNotifications(token, params = {}) {
   if (!res.ok) throw new Error(data.error || "Failed to load notifications");
   return data;
 }
+
+// Requests sent by devices (unenroll request, support ticket).
+export async function getDeviceRequests(token) {
+  const res = await fetch(`${BASE_URL}/api/notifications/requests`, { headers: authHeaders(token) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load device requests");
+  return data;
+}

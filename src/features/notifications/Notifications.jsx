@@ -6,6 +6,7 @@ import { KpiCard } from "../../components/common/KpiCard";
 import { getDepartments } from "../departments/departmentService";
 import {
   cancelNotification,
+  getDeviceRequests,
   getNotificationStats,
   getNotifications,
   resendNotification,
@@ -31,10 +32,12 @@ export function NotificationCenterView({ token, devices, organizationId }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [requests, setRequests] = useState([]);
 
   function load() {
     const params = { page, limit: 30 };
     if (statusFilter) params.status = statusFilter;
+    getDeviceRequests(token).then((r) => setRequests(r.requests)).catch(() => {});
     return Promise.all([getNotifications(token, params), getNotificationStats(token)])
       .then(([n, s]) => { setSent(n.notifications); setTotal(n.total); setStats(s); })
       .catch((err) => setError(err.message))
@@ -124,6 +127,24 @@ export function NotificationCenterView({ token, devices, organizationId }) {
           <KpiCard label="Delivered" value={stats.delivered} />
           <KpiCard label="Failed" value={stats.failed} />
           <KpiCard label="Acknowledged" value={stats.acknowledged} />
+        </div>
+      )}
+
+      {requests.length > 0 && (
+        <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
+          <h3 style={{ marginTop: 0 }}>Device requests</h3>
+          <div className="table-scroll"><table>
+            <thead><tr><th>When</th><th>Type</th><th>Details</th></tr></thead>
+            <tbody>
+              {requests.map((r) => (
+                <tr key={r.id}>
+                  <td>{new Date(r.created_at).toLocaleString()}</td>
+                  <td>{r.type}</td>
+                  <td>{r.details || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 //
 // Also owns the data several pages share (device list and policies) and
 // the toast used for command / action feedback.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import AppRoutes from "../../routes/AppRoutes";
@@ -12,6 +12,7 @@ import { getRoleLabel } from "../../config/roles";
 import { getUserInitials } from "../../utils/formatters";
 import { getDevices, getDeviceStats } from "../../features/devices/deviceService";
 import { getPolicies } from "../../features/policies/policyService";
+import { getDeviceRequests } from "../../features/notifications/notificationService";
 
 export default function MainLayout({ token, user, onLogout }) {
   const [page, setPage] = usePageNavigation();
@@ -55,6 +56,34 @@ export default function MainLayout({ token, user, onLogout }) {
   useEffect(() => {
     loadDevices();
     loadPolicies();
+  }, []);
+
+  // Pop-up for new requests sent from devices (unenroll request, support ticket).
+  // The first fetch only sets the baseline, so old requests don't pop up on login.
+  const lastRequestId = useRef(null);
+  useEffect(() => {
+    if (user.is_super_admin || user.role !== "OrganizationAdmin") return;
+    let stopped = false;
+    async function checkRequests() {
+      try {
+        const { requests } = await getDeviceRequests(token);
+        if (stopped) return;
+        const maxId = requests.reduce((m, r) => Math.max(m, r.id), 0);
+        if (lastRequestId.current !== null) {
+          const fresh = requests.filter((r) => r.id > lastRequestId.current);
+          if (fresh.length > 0) {
+            const r = fresh[0];
+            showToast(`New ${r.type}${r.details ? ": " + r.details : ""}${fresh.length > 1 ? ` (+${fresh.length - 1} more)` : ""}`);
+          }
+        }
+        if (lastRequestId.current === null || maxId > lastRequestId.current) lastRequestId.current = maxId;
+      } catch (err) {
+        // silent — retries on the next tick
+      }
+    }
+    checkRequests();
+    const timer = setInterval(checkRequests, 30000);
+    return () => { stopped = true; clearInterval(timer); };
   }, []);
 
   // Mobile drawer: Escape se band ho, aur khula ho to page scroll lock rahe.
