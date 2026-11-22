@@ -5,6 +5,7 @@ import { IconX } from "../../components/icons";
 import { getCommandStatus } from "../commands/commandService";
 import { getDevices } from "../devices/deviceService";
 import { isDeviceOnline } from "../devices/deviceUtils";
+import { InstallProgress } from "./InstallProgress";
 import { installApplication } from "./applicationService";
 
 export function InstallApkModal({ app, token, organizationId, onClose, showToast }) {
@@ -56,7 +57,6 @@ export function InstallApkModal({ app, token, organizationId, onClose, showToast
     setError("");
     try {
       const result = await installApplication(token, app.id, deviceUid);
-      showToast(result.message);
       setCommandId(result.command_id);
       setStatus("sent");
     } catch (err) {
@@ -126,6 +126,8 @@ export function InstallApkModal({ app, token, organizationId, onClose, showToast
             })}
           </div>
           {error && <p className="error-text">{error}</p>}
+
+          {commandId && <InstallProgress token={token} commandIds={[commandId]} />}
 
           {statusLabel() && (
             <p style={{

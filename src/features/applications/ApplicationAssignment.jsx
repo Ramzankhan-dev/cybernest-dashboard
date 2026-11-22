@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { IconX } from "../../components/icons";
 import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
+import { InstallProgress } from "./InstallProgress";
 import { assignApplication } from "./applicationService";
 
 export function ApplicationAssignModal({ app, token, organizationId, onClose, showToast }) {
@@ -14,6 +15,7 @@ export function ApplicationAssignModal({ app, token, organizationId, onClose, sh
   const [departmentId, setDepartmentId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
 
   useEffect(() => {
     getDevices(token, { organization_id: organizationId, limit: 200 }).then((d) => setDevices(d.devices)).catch(() => {});
@@ -27,8 +29,7 @@ export function ApplicationAssignModal({ app, token, organizationId, onClose, sh
     try {
       const target = mode === "device" ? { device_uid: deviceUid } : { department_id: departmentId };
       const data = await assignApplication(token, app.id, target);
-      showToast(data.message);
-      onClose(true);
+      setResult(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,9 +75,15 @@ export function ApplicationAssignModal({ app, token, organizationId, onClose, sh
             </p>
           )}
           {error && <p className="error-text">{error}</p>}
+          {result && (
+            <>
+              <p style={{ fontSize: "0.8rem", marginTop: "0.8rem" }}>{result.message}</p>
+              <InstallProgress token={token} commandIds={result.command_ids} />
+            </>
+          )}
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <button type="submit" disabled={saving}>{saving ? "Assigning..." : "Assign"}</button>
-            <button type="button" className="ghost-dark" onClick={() => onClose(false)}>Cancel</button>
+            {!result && <button type="submit" disabled={saving}>{saving ? "Assigning..." : "Assign"}</button>}
+            <button type="button" className="ghost-dark" onClick={() => onClose(!!result)}>{result ? "Close" : "Cancel"}</button>
           </div>
         </form>
       </div>
