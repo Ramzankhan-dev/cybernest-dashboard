@@ -1,4 +1,4 @@
-// Managed applications and direct APK upload / install.
+// Managed applications (APK upload + install) and install history.
 
 import { BASE_URL, authHeaders } from "../../services/apiClient";
 
@@ -18,26 +18,45 @@ export async function getApplicationStats(token, organizationId = null) {
   return data;
 }
 
-export async function createApplication(token, payload) {
-  const res = await fetch(`${BASE_URL}/api/applications`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
+// Multipart upload via XMLHttpRequest (not fetch) because fetch has no
+// upload-progress API — for a large APK over a slow uplink the modal would
+// look frozen even when it was working. Used for both add and edit.
+function sendApplicationForm(token, method, url, fields, file, onProgress, fallbackError) {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") formData.append(k, v);
+    });
+    if (file) formData.append("apk", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+        else reject(new Error(data.error || fallbackError));
+      } catch (err) {
+        reject(new Error(fallbackError));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.ontimeout = () => reject(new Error("Upload timed out"));
+    xhr.timeout = 10 * 60 * 1000; // 10 minutes — generous for a slow uplink
+    xhr.send(formData);
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to register application");
-  return data;
 }
 
-export async function updateApplication(token, id, payload) {
-  const res = await fetch(`${BASE_URL}/api/applications/${id}`, {
-    method: "PUT",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to update application");
-  return data;
+export function createApplication(token, fields, file, onProgress) {
+  return sendApplicationForm(token, "POST", `${BASE_URL}/api/applications`, fields, file, onProgress, "Failed to add application");
+}
+
+export function updateApplication(token, id, fields, file, onProgress) {
+  return sendApplicationForm(token, "PUT", `${BASE_URL}/api/applications/${id}`, fields, file, onProgress, "Failed to update application");
 }
 
 export async function assignApplication(token, id, target) {
@@ -81,63 +100,10 @@ export async function deleteApplication(token, id) {
   return data;
 }
 
-// ===================== Direct APK Install =====================
+// ===================== Install to device =====================
 
-// Uses XMLHttpRequest (not fetch) specifically because fetch has no
-// upload-progress API — for a large APK over a slow uplink, that made
-// the modal look frozen with zero feedback even when it was working.
-export function uploadApkPackage(token, { appName, packageName, versionName, file }, onProgress) {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData();
-    formData.append("app_name", appName);
-    formData.append("package_name", packageName);
-    if (versionName) formData.append("version_name", versionName);
-    formData.append("apk", file);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${BASE_URL}/api/applications/packages`);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      try {
-        const data = JSON.parse(xhr.responseText);
-        if (xhr.status >= 200 && xhr.status < 300) resolve(data);
-        else reject(new Error(data.error || "Failed to upload APK"));
-      } catch (err) {
-        reject(new Error("Failed to upload APK"));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.ontimeout = () => reject(new Error("Upload timed out"));
-    xhr.timeout = 10 * 60 * 1000; // 10 minutes — generous for a slow uplink
-
-    xhr.send(formData);
-  });
-}
-
-export async function getApkPackages(token, organizationId) {
-  const qs = organizationId ? `?organization_id=${organizationId}` : "";
-  const res = await fetch(`${BASE_URL}/api/applications/packages${qs}`, { headers: authHeaders(token) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to load APK packages");
-  return data;
-}
-
-export async function deleteApkPackage(token, id) {
-  const res = await fetch(`${BASE_URL}/api/applications/packages/${id}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to delete package");
-  return data;
-}
-
-export async function installApkPackage(token, id, deviceUid) {
-  const res = await fetch(`${BASE_URL}/api/applications/packages/${id}/install`, {
+export async function installApplication(token, id, deviceUid) {
+  const res = await fetch(`${BASE_URL}/api/applications/${id}/install`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({ device_uid: deviceUid }),

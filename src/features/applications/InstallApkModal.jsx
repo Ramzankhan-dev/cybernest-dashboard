@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { IconX } from "../../components/icons";
 import { getCommandStatus } from "../commands/commandService";
 import { getDevices } from "../devices/deviceService";
-import { installApkPackage } from "./applicationService";
+import { installApplication } from "./applicationService";
 
-export function InstallApkModal({ pkg, token, organizationId, onClose, showToast }) {
+export function InstallApkModal({ app, token, organizationId, onClose, showToast }) {
   const [devices, setDevices] = useState([]);
   const [deviceUid, setDeviceUid] = useState("");
   const [saving, setSaving] = useState(false);
@@ -48,7 +48,7 @@ export function InstallApkModal({ pkg, token, organizationId, onClose, showToast
     setSaving(true);
     setError("");
     try {
-      const result = await installApkPackage(token, pkg.id, deviceUid);
+      const result = await installApplication(token, app.id, deviceUid);
       setCommandId(result.command_id);
       setStatus("sent");
     } catch (err) {
@@ -69,7 +69,7 @@ export function InstallApkModal({ pkg, token, organizationId, onClose, showToast
     <div className="modal-overlay" onClick={() => onClose(status === "executed")}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={() => onClose(status === "executed")}><IconX size={16} /></button>
-        <h3 style={{ marginTop: 0 }}>Install "{pkg.app_name}"</h3>
+        <h3 style={{ marginTop: 0 }}>Install "{app.name}"</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
           Pushes a silent install command to the device — no user confirmation needed, since it's already Device Owner managed.
         </p>

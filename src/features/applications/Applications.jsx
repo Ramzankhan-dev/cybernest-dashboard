@@ -1,17 +1,14 @@
-// Applications page: managed apps, direct APK install, install history.
+// Applications page: one list of managed apps (each with its APK), install-to-device, install history.
 
 import { useEffect, useState } from "react";
 import { KpiCard } from "../../components/common/KpiCard";
 import { ApplicationAssignModal } from "./ApplicationAssignment";
 import { ApplicationFormModal } from "./ApplicationForm";
 import { InstallApkModal } from "./InstallApkModal";
-import { UploadApkModal } from "./UploadApkModal";
 import {
   allowApplication,
   blockApplication,
-  deleteApkPackage,
   deleteApplication,
-  getApkPackages,
   getApplicationStats,
   getApplications,
   getInstallHistory,
@@ -30,29 +27,14 @@ export function ApplicationsView({ token, organizationId, showToast }) {
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
   const [assigningApp, setAssigningApp] = useState(null);
-  const [apkPackages, setApkPackages] = useState([]);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [installingPkg, setInstallingPkg] = useState(null);
+  const [installingApp, setInstallingApp] = useState(null);
   const [installHistory, setInstallHistory] = useState([]);
 
-  function loadApkPackages() {
-    getApkPackages(token, organizationId).then(setApkPackages).catch(() => {});
-  }
   function loadInstallHistory() {
     getInstallHistory(token, organizationId).then(setInstallHistory).catch(() => {});
   }
 
-  useEffect(() => { loadApkPackages(); loadInstallHistory(); }, [organizationId]);
-
-  async function handleDeletePkg(pkg) {
-    if (!window.confirm(`Delete uploaded APK "${pkg.app_name}"?`)) return;
-    try {
-      await deleteApkPackage(token, pkg.id);
-      loadApkPackages();
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  }
+  useEffect(() => { loadInstallHistory(); }, [organizationId]);
 
   function load() {
     setLoading(true);
@@ -90,7 +72,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
   }
 
   async function handleDelete(app) {
-    if (!window.confirm(`Delete "${app.name}"?`)) return;
+    if (!window.confirm(`Delete "${app.name}" and its uploaded APK?`)) return;
     try {
       await deleteApplication(token, app.id);
       load();
@@ -136,11 +118,11 @@ export function ApplicationsView({ token, organizationId, showToast }) {
 
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
-      {!loading && apps.length === 0 && <p className="empty-state">No applications registered yet.</p>}
+      {!loading && apps.length === 0 && <p className="empty-state">No applications yet — click "+ Add Application" and upload an APK.</p>}
       {!loading && apps.length > 0 && (
         <div className="table-scroll"><table>
           <thead>
-            <tr><th>Name</th><th>Package</th><th>Version</th><th>Category</th><th>Install Type</th><th>Assigned</th><th>Installed</th><th>Status</th><th>Actions</th></tr>
+            <tr><th>Name</th><th>Package</th><th>Version</th><th>Category</th><th>Install Type</th><th>Size / Uploaded</th><th>Assigned</th><th>Installed</th><th>Status</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {apps.map((a) => (
@@ -150,13 +132,15 @@ export function ApplicationsView({ token, organizationId, showToast }) {
                 <td>{a.version || "—"}</td>
                 <td>{a.category}</td>
                 <td>{a.install_type}</td>
+                <td>{a.package_id ? `${(a.file_size_bytes / 1024 / 1024).toFixed(1)} MB · ${new Date(a.apk_uploaded_at).toLocaleDateString()}` : "No APK"}</td>
                 <td>{a.assigned_devices_count}</td>
                 <td>{a.installed_count}</td>
                 <td><span className={`badge ${a.status === "active" ? "active" : "suspended"}`}>{a.status === "active" ? "Allowed" : "Blocked"}</span></td>
                 <td className="actions">
+                  <button disabled={!a.package_id} title={a.package_id ? "" : "No APK uploaded — edit and attach one"} onClick={() => setInstallingApp(a)}>Install to Device</button>
                   <button onClick={() => { setEditingApp(a); setShowFormModal(true); }}>Edit</button>
                   <button onClick={() => setAssigningApp(a)}>Assign</button>
-                  <button onClick={() => handleToggleBlock(a)}>{a.status === "active" ? "Block" : "Allow"}</button>
+                  <button onClick={() => handleToggleBlock(a)}>{a.status === "active" ? "Block" : "Unblock"}</button>
                   <button className="danger" onClick={() => handleDelete(a)}>Delete</button>
                 </td>
               </tr>
@@ -171,38 +155,6 @@ export function ApplicationsView({ token, organizationId, showToast }) {
           <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Page {page} of {Math.ceil(total / 20)}</span>
           <button className="ghost-dark" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>Next</button>
         </div>
-      )}
-
-      <div className="dash-header-row" style={{ marginTop: "2rem" }}>
-        <h2 style={{ border: "none", margin: 0 }}>Direct APK Install</h2>
-        <button onClick={() => setShowUploadModal(true)}>+ Upload APK</button>
-      </div>
-      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.3rem 0 1rem" }}>
-        Upload an APK once, then push a silent install to any enrolled device — no Play Store or Managed Google Play needed.
-      </p>
-      {apkPackages.length === 0 ? (
-        <p className="empty-state">No APKs uploaded yet.</p>
-      ) : (
-        <div className="table-scroll"><table>
-          <thead>
-            <tr><th>App</th><th>Package</th><th>Version</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {apkPackages.map((pkg) => (
-              <tr key={pkg.id}>
-                <td>{pkg.app_name}</td>
-                <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{pkg.package_name}</td>
-                <td>{pkg.version_name || "—"}</td>
-                <td>{(pkg.file_size_bytes / 1024 / 1024).toFixed(1)} MB</td>
-                <td>{new Date(pkg.uploaded_at).toLocaleDateString()}</td>
-                <td>
-                  <button onClick={() => setInstallingPkg(pkg)}>Install to Device</button>
-                  <button className="danger" onClick={() => handleDeletePkg(pkg)}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
       )}
 
       <div className="dash-header-row" style={{ marginTop: "2rem" }}>
@@ -249,22 +201,13 @@ export function ApplicationsView({ token, organizationId, showToast }) {
         />
       )}
 
-      {showUploadModal && (
-        <UploadApkModal
-          token={token}
-          organizationId={organizationId}
-          showToast={showToast}
-          onClose={(refresh) => { setShowUploadModal(false); if (refresh) loadApkPackages(); }}
-        />
-      )}
-
-      {installingPkg && (
+      {installingApp && (
         <InstallApkModal
-          pkg={installingPkg}
+          app={installingApp}
           token={token}
           organizationId={organizationId}
           showToast={showToast}
-          onClose={(refresh) => { setInstallingPkg(null); if (refresh) { loadApkPackages(); loadInstallHistory(); } }}
+          onClose={(refresh) => { setInstallingApp(null); if (refresh) { load(); loadInstallHistory(); } }}
         />
       )}
     </section>
