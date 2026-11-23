@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { IconX } from "../../components/icons";
 import { createOrganization, updateOrganization } from "./organizationService";
+import { EmailVerify } from "../../components/common/EmailVerify";
 
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
@@ -54,6 +55,7 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [emailVerified, setEmailVerified] = useState(false);
 
   function set(field, value) {
     setForm({ ...form, [field]: value });
@@ -66,6 +68,7 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
     if (!isEdit) {
       if (!email) errors.email = "Email is required";
       else if (!EMAIL_REGEX.test(email)) errors.email = "Enter a valid email, e.g. name@example.com";
+      else if (!emailVerified) errors.email = "Please verify this email (Send Code, then enter the code)";
     }
 
     if (!isEdit) {
@@ -133,7 +136,7 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
           <input
             type="email"
             value={form.email}
-            onChange={(e) => set("email", e.target.value)}
+            onChange={(e) => { set("email", e.target.value); setEmailVerified(false); }}
             required
             disabled={isEdit}
             readOnly={isEdit}
@@ -143,6 +146,14 @@ export function OrgFormModal({ initial, onClose, onSaved, token, isEdit }) {
             <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
               Email cannot be changed.
             </p>
+          )}
+          {!isEdit && (
+            <EmailVerify
+              token={token}
+              email={form.email}
+              verified={emailVerified}
+              onVerified={(v) => { setEmailVerified(v); setFieldErrors((prev) => ({ ...prev, email: undefined })); }}
+            />
           )}
           {fieldErrors.email && <p className="error-text" style={{ margin: "0.2rem 0 0" }}>{fieldErrors.email}</p>}
           {!isEdit && (

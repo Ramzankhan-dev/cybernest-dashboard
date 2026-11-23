@@ -7,6 +7,7 @@ import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { PASSWORD_HINT, passwordRuleError } from "../../utils/passwordRules";
 import { EditEmployeeModal } from "./EditEmployeeModal";
+import { EmailVerify } from "../../components/common/EmailVerify";
 import { SetPasswordModal } from "./SetPasswordModal";
 import {
   assignEmployeeDevice,
@@ -90,6 +91,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
   const [lastName, setLastName] = useState("");
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
   const [phone, setPhone] = useState("");
   const [designation, setDesignation] = useState("");
   const [role, setRole] = useState("Employee");
@@ -145,6 +147,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
     if (!code.trim()) errors.code = "* Please fill this field";
     if (!email.trim()) errors.email = "* Please fill this field";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = "* Please enter a valid email";
+    else if (!emailVerified) errors.email = "* Please verify this email (Send Code, then enter the code)";
     if (!deptId) errors.deptId = "* Please select a department";
     if (role === "DepartmentManager" && !managerPassword.trim()) {
       errors.managerPassword = "* Please set a password (min 8 characters, letters and numbers)";
@@ -167,7 +170,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
         email: email.trim(), phone_number: phone.trim(), designation: designation.trim(),
         role, department_id: deptId, password: role === "DepartmentManager" ? managerPassword : undefined,
       });
-      setFirstName(""); setLastName(""); setCode(""); setEmail(""); setPhone(""); setDesignation(""); setRole("Employee"); setDeptId(""); setManagerPassword("");
+      setFirstName(""); setLastName(""); setCode(""); setEmail(""); setEmailVerified(false); setPhone(""); setDesignation(""); setRole("Employee"); setDeptId(""); setManagerPassword("");
       setFieldErrors({});
       load();
     } catch (err) {
@@ -313,8 +316,9 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
               <input
                 type="email" placeholder="Email" value={email}
                 className={fieldErrors.email ? "input-error" : ""}
-                onChange={(e) => { setEmail(e.target.value); clearFieldError("email"); }}
+                onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); clearFieldError("email"); }}
               />
+              <EmailVerify token={token} email={email} verified={emailVerified} onVerified={(v) => { setEmailVerified(v); clearFieldError("email"); }} />
               {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
             </div>
             <input type="text" placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
