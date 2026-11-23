@@ -14,6 +14,7 @@ import {
   sendNotification,
 } from "./notificationService";
 import { formatDateTime } from "../../utils/dateFormat";
+import { markRequestsSeen } from "../../utils/requestsSeen";
 
 export function NotificationCenterView({ token, devices, organizationId }) {
   const [title, setTitle] = useState("");
@@ -38,7 +39,7 @@ export function NotificationCenterView({ token, devices, organizationId }) {
   function load() {
     const params = { page, limit: 30 };
     if (statusFilter) params.status = statusFilter;
-    getDeviceRequests(token).then((r) => setRequests(r.requests)).catch(() => {});
+    getDeviceRequests(token).then((r) => { setRequests(r.requests); markRequestsSeen(token, r.requests); }).catch(() => {});
     return Promise.all([getNotifications(token, params), getNotificationStats(token)])
       .then(([n, s]) => { setSent(n.notifications); setTotal(n.total); setStats(s); })
       .catch((err) => setError(err.message))

@@ -40,6 +40,7 @@ import {
 import { formatDateTime, formatTime } from "../../utils/dateFormat";
 import { getAuditLogs } from "../audit/auditService";
 import { getDeviceRequests } from "../notifications/notificationService";
+import { countUnseenRequests, markRequestsSeen } from "../../utils/requestsSeen";
 
 export function DashboardOverview({ token, user, onNavigate }) {
   const [summary, setSummary] = useState(null);
@@ -66,10 +67,10 @@ export function DashboardOverview({ token, user, onNavigate }) {
       setCharts(c);
       setActivity(a);
       setAlerts(al);
-      if (!user.is_super_admin && user.role === "OrganizationAdmin") {
+      if (!user.is_super_admin) {
         const [rq, au] = await Promise.all([
           getDeviceRequests(token).catch(() => ({ requests: [] })),
-          getAuditLogs(token, { limit: 20 }).catch(() => ({ logs: [] })),
+          user.role === "OrganizationAdmin" ? getAuditLogs(token, { limit: 20 }).catch(() => ({ logs: [] })) : Promise.resolve({ logs: [] }),
         ]);
         setRequests(rq.requests || []);
         setAuditRows(au.logs || []);
@@ -123,6 +124,8 @@ export function DashboardOverview({ token, user, onNavigate }) {
   const isSA = !!user.is_super_admin;
   const isMgr = !isSA && user.role === "DepartmentManager"; // department-scoped view
   const isOrg = !isSA && !isMgr; // Organization Admin
+  const unseenRequests = countUnseenRequests(token, requests);
+  function openRequests() { markRequestsSeen(token, requests); onNavigate("notifications"); }
   const recentRequests = requests.filter((r) => Date.now() - new Date(r.created_at).getTime() < 7 * 24 * 60 * 60 * 1000);
 
   return (
@@ -159,21 +162,20 @@ export function DashboardOverview({ token, user, onNavigate }) {
         ) : isMgr ? (
           <>
             <KpiCard label="Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
-            <KpiCard label="Unassigned Devices" value={summary.unassigned_devices} icon={IconSmartphone} tone="cyan" onClick={() => onNavigate("devices")} />
             <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("compliance")} />
             <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("commands")} />
             <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
+            <KpiCard label="Device Requests" value={recentRequests.length} icon={IconMegaphone} tone="rose" hint="last 7 days" badge={unseenRequests} onClick={openRequests} />
           </>
         ) : (
           <>
             <KpiCard label="Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
             <KpiCard label="Departments" value={summary.total_departments} icon={IconFolder} tone="cyan" onClick={() => onNavigate("departments")} />
-            <KpiCard label="Unassigned Devices" value={summary.unassigned_devices} icon={IconSmartphone} tone="violet" onClick={() => onNavigate("devices")} />
             <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
             <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("compliance")} />
             <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("commands")} />
             <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
-            <KpiCard label="Device Requests" value={recentRequests.length} icon={IconMegaphone} tone="rose" hint="last 7 days" onClick={() => onNavigate("notifications")} />
+            <KpiCard label="Device Requests" value={recentRequests.length} icon={IconMegaphone} tone="rose" hint="last 7 days" badge={unseenRequests} onClick={openRequests} />
           </>
         )}
       </div>
@@ -279,14 +281,14 @@ export function DashboardOverview({ token, user, onNavigate }) {
               ))}
             </div>
           </div>
-          {isOrg && (
+          {!isSA && (
             <div className="dash-card">
               <div className="card-header">
                 <div>
                   <h3>Recent Device Requests</h3>
-                  <p className="card-subtitle">{requests.length > 0 ? `${requests.length} from devices` : "No requests"}</p>
+                  <p className="card-subtitle">{requests.length > 0 ? `${requests.length} from devices${unseenRequests ? ` · ${unseenRequests} new` : ""}` : "No requests"}</p>
                 </div>
-                <button className="card-link" onClick={() => onNavigate("notifications")}>View all</button>
+                <button className="card-link" onClick={openRequests}>View all</button>
               </div>
               {requests.length === 0 && <p className="empty-state">No unenroll or support requests.</p>}
               <div className="alert-scroll">
