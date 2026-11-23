@@ -65,10 +65,7 @@ export function SettingsView({ token, organizationId, showToast }) {
         <RefreshButton onRefresh={load} />
       </div>
 
-      <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1.2rem" }}>
-        Organization name & branding are managed under <strong>Organization</strong>. API keys are under <strong>Profile</strong>.
-      </p>
-
+  
       <form onSubmit={handleSave}>
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
           <h3 style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>General</h3>
@@ -137,9 +134,7 @@ export function SettingsView({ token, organizationId, showToast }) {
             </tbody>
           </table></div>
         )}
-        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.6rem" }}>
-          CyberNest MDM — Enrollment, Policy, Command, and Compliance modules are functional and covered elsewhere in this dashboard.
-        </p>
+      
       </div>
     </section>
   );
