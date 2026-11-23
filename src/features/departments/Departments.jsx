@@ -135,7 +135,7 @@ export function DepartmentsView({ token, policies, organizationId, onBack, user 
   }
 
   async function handleDelete(d) {
-    if (!window.confirm(`Delete "${d.name}"? Blocked if it still has employees.`)) return;
+    if (!window.confirm(`Permanently delete "${d.name}"? This is blocked if any employee or device is still linked to it.`)) return;
     try {
       await deleteDepartment(token, d.id);
       load();
