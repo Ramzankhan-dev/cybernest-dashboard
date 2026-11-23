@@ -5,6 +5,7 @@ import { RefreshButton } from "../../components/common/RefreshButton";
 import { getAuditLogs } from "../audit/auditService";
 import { getCompliance } from "../compliance/complianceService";
 import { isDeviceOnline } from "../devices/deviceUtils";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function AlertsView({ devices, token, organizationId, onRefreshDevices }) {
   const [complianceRows, setComplianceRows] = useState([]);
@@ -42,15 +43,15 @@ export function AlertsView({ devices, token, organizationId, onRefreshDevices })
         key: `battery-${d.id}`, source: "Device",
         title: `Battery low — ${name}`,
         desc: `Device battery is at ${d.battery_level}%.`,
-        time: d.last_seen ? new Date(d.last_seen).toLocaleString() : "—",
+        time: d.last_seen ? formatDateTime(d.last_seen) : "—",
       });
     }
     if (d.last_seen && !isDeviceOnline(d)) {
       alerts.push({
         key: `offline-${d.id}`, source: "Device",
         title: `Device offline — ${name}`,
-        desc: `No check-in since ${new Date(d.last_seen).toLocaleString()}.`,
-        time: new Date(d.last_seen).toLocaleString(),
+        desc: `No check-in since ${formatDateTime(d.last_seen)}.`,
+        time: formatDateTime(d.last_seen),
       });
     }
     if (d.is_rooted) {
@@ -58,7 +59,7 @@ export function AlertsView({ devices, token, organizationId, onRefreshDevices })
         key: `root-${d.id}`, source: "Device",
         title: `Root access detected — ${name}`,
         desc: `Device flagged as rooted — this may bypass policy enforcement.`,
-        time: d.last_seen ? new Date(d.last_seen).toLocaleString() : "—",
+        time: d.last_seen ? formatDateTime(d.last_seen) : "—",
       });
     }
   });
@@ -70,7 +71,7 @@ export function AlertsView({ devices, token, organizationId, onRefreshDevices })
         key: `compliance-${r.id}`, source: "Compliance",
         title: `${r.compliance_status} — ${r.model || r.device_uid}`,
         desc: `Policy "${r.policy_name || "—"}" — ${r.compliance_status === "Policy Failed" ? "one or more commands failed to apply" : "device hasn't synced recently"}.`,
-        time: r.last_seen ? new Date(r.last_seen).toLocaleString() : "Never",
+        time: r.last_seen ? formatDateTime(r.last_seen) : "Never",
       });
     }
   });
@@ -81,7 +82,7 @@ export function AlertsView({ devices, token, organizationId, onRefreshDevices })
       key: `audit-${e.id}`, source: "Audit",
       title: `${e.action.replace(/_/g, " ")} — ${e.user_name || e.user_email || "System"}`,
       desc: e.details || "Critical security event recorded.",
-      time: new Date(e.created_at).toLocaleString(),
+      time: formatDateTime(e.created_at),
     });
   });
 

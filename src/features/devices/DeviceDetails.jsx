@@ -12,6 +12,7 @@ import { AppsPanel } from "./DeviceApps";
 import { HistoryPanel } from "./DeviceCommandHistory";
 import { LocationPanel } from "./DeviceLocation";
 import { enrollmentTypeLabel, isDeviceOnline } from "./deviceUtils";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function DeviceDetailsView({ device, token, policies, onCommandSent, onClose, readOnly }) {
   const [tab, setTab] = useState("general");
@@ -138,8 +139,8 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
               <tr><td><strong>Network</strong></td><td>{device.network_info || "—"}</td></tr>
               <tr><td><strong>Battery</strong></td><td>{device.battery_level != null ? `${device.battery_level}%` : "—"}</td></tr>
               <tr><td><strong>Status</strong></td><td>{isDeviceOnline(device) ? "online" : "offline"}</td></tr>
-              <tr><td><strong>Last seen</strong></td><td>{device.last_seen ? new Date(device.last_seen).toLocaleString() : "—"}</td></tr>
-              <tr><td><strong>Enrolled</strong></td><td>{device.enrolled_at ? new Date(device.enrolled_at).toLocaleString() : "—"}</td></tr>
+              <tr><td><strong>Last seen</strong></td><td>{device.last_seen ? formatDateTime(device.last_seen) : "—"}</td></tr>
+              <tr><td><strong>Enrolled</strong></td><td>{device.enrolled_at ? formatDateTime(device.enrolled_at) : "—"}</td></tr>
             </tbody>
           </table></div>
           <div className="quick-actions">
@@ -206,7 +207,7 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
                         {p.kiosk_mode && "Kiosk "}
                       </span>
                     </span>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{new Date(p.assigned_at).toLocaleString()}</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{formatDateTime(p.assigned_at)}</span>
                   </li>
                 ))}
               </ul>

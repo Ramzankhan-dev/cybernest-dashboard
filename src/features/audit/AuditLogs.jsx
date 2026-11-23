@@ -6,6 +6,7 @@ import { KpiCard } from "../../components/common/KpiCard";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { getAuditLogStats, getAuditLogs } from "./auditService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 // [Role Badge] - Module, used to label who performed each audit event.
 // The backend attaches `role` (SuperAdmin / OrganizationAdmin /
@@ -153,14 +154,14 @@ export function AuditLogsView({ token, organizationId, onBack }) {
         <button
           type="button"
           className="ghost-dark"
-          onClick={() => exportToCSV("audit-logs", ["Time", "User", "Module", "Action", "Status", "IP"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status, l.ip_address || "—"]))}
+          onClick={() => exportToCSV("audit-logs", ["Time", "User", "Module", "Action", "Status", "IP"], logs.map((l) => [formatDateTime(l.created_at), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status, l.ip_address || "—"]))}
         >
           Export CSV
         </button>
         <button
           type="button"
           className="ghost-dark"
-          onClick={() => exportToPDF("audit-logs", "Audit Logs", ["Time", "User", "Module", "Action", "Status"], logs.map((l) => [new Date(l.created_at).toLocaleString(), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status]))}
+          onClick={() => exportToPDF("audit-logs", "Audit Logs", ["Time", "User", "Module", "Action", "Status"], logs.map((l) => [formatDateTime(l.created_at), l.user_name || l.user_email || "System", auditModuleBadge(l), l.action, l.status]))}
         >
           Export PDF
         </button>
@@ -178,7 +179,7 @@ export function AuditLogsView({ token, organizationId, onBack }) {
             {logs.map((l) => (
               <>
                 <tr key={l.id}>
-                  <td>{new Date(l.created_at).toLocaleString()}</td>
+                  <td>{formatDateTime(l.created_at)}</td>
                   <td>{l.user_name || l.user_email || "System"}</td>
                   <td>{auditModuleBadge(l)}</td>
                   <td>{l.action}</td>

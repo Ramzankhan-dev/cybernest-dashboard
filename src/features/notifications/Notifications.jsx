@@ -13,6 +13,7 @@ import {
   scheduleNotification,
   sendNotification,
 } from "./notificationService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function NotificationCenterView({ token, devices, organizationId }) {
   const [title, setTitle] = useState("");
@@ -137,7 +138,7 @@ export function NotificationCenterView({ token, devices, organizationId }) {
             <tbody>
               {requests.map((r) => (
                 <tr key={r.id}>
-                  <td>{new Date(r.created_at).toLocaleString()}</td>
+                  <td>{formatDateTime(r.created_at)}</td>
                   <td>{r.type}</td>
                   <td>{r.details || "—"}</td>
                 </tr>
@@ -230,7 +231,7 @@ export function NotificationCenterView({ token, devices, organizationId }) {
                 <td>{n.target_device_uid || n.department_name || "Everyone"}</td>
                 <td>{n.priority}</td>
                 <td>{n.sent_by_name || "—"}</td>
-                <td>{n.status === "scheduled" ? `Scheduled: ${new Date(n.scheduled_at).toLocaleString()}` : n.sent_at ? new Date(n.sent_at).toLocaleString() : "—"}</td>
+                <td>{n.status === "scheduled" ? `Scheduled: ${formatDateTime(n.scheduled_at)}` : n.sent_at ? formatDateTime(n.sent_at) : "—"}</td>
                 <td><span className={`badge ${statusBadgeClass(n.status)}`}>{n.status}{n.device_count != null && n.status === "delivered" ? ` (${n.device_count})` : ""}</span></td>
                 <td className="actions">
                   {n.status === "scheduled" && <button disabled={acting !== null} onClick={() => handleCancel(n)}>Cancel</button>}

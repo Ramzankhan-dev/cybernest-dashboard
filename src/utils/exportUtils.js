@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatDateTime } from "./dateFormat";
 
 // Downloads a CSV file (opens directly in Excel/Sheets) built from a
 // simple array-of-arrays table, with the first row as headers.
@@ -64,7 +65,7 @@ export function exportToPDF(filename, title, headers, rows) {
   doc.text(title, MARGIN, 16);
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
-  doc.text(`Generated ${new Date().toLocaleString()}`, MARGIN, 22);
+  doc.text(`Generated ${formatDateTime()}`, MARGIN, 22);
 
   const columnStyles = {};
   colWidths.forEach((w, i) => { columnStyles[i] = { cellWidth: w }; });

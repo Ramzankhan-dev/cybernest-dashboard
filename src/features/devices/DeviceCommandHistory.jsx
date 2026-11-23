@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getCommandHistory } from "../commands/commandService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function HistoryPanel({ deviceUid, token, onClose, embedded }) {
   const [history, setHistory] = useState([]);
@@ -34,8 +35,8 @@ export function HistoryPanel({ deviceUid, token, onClose, embedded }) {
               <tr key={h.id}>
                 <td>{h.command_type}</td>
                 <td>{h.status}</td>
-                <td>{new Date(h.issued_at).toLocaleString()}</td>
-                <td>{h.executed_at ? new Date(h.executed_at).toLocaleString() : "—"}</td>
+                <td>{formatDateTime(h.issued_at)}</td>
+                <td>{h.executed_at ? formatDateTime(h.executed_at) : "—"}</td>
               </tr>
             ))}
           </tbody>

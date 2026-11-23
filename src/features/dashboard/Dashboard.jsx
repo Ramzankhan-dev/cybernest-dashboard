@@ -36,6 +36,7 @@ import {
   getDashboardCharts,
   getDashboardSummary,
 } from "./dashboardService";
+import { formatDateTime, formatTime } from "../../utils/dateFormat";
 
 export function DashboardOverview({ token, user, onNavigate }) {
   const [summary, setSummary] = useState(null);
@@ -120,7 +121,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
           </p>
           {lastUpdated && (
             <p className="dash-updated" style={{ margin: "0.45rem 0 0" }}>
-              <IconClock size={13} /> Last updated {lastUpdated.toLocaleTimeString()} · auto-refreshes every minute
+              <IconClock size={13} /> Last updated {formatTime(lastUpdated)} · auto-refreshes every minute
             </p>
           )}
         </div>
@@ -312,7 +313,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
             <tbody>
               {activity.map((a) => (
                 <tr key={a.id}>
-                  <td className="mono" style={{ color: "var(--text-muted)" }}>{isSA ? new Date(a.issued_at).toLocaleString() : new Date(a.issued_at).toLocaleTimeString()}</td>
+                  <td className="mono" style={{ color: "var(--text-muted)" }}>{isSA ? formatDateTime(a.issued_at) : formatTime(a.issued_at)}</td>
                   <td><span className="badge">{a.command_type}</span></td>
                   <td>{a.employee_name || a.device_uid}</td>
                 </tr>

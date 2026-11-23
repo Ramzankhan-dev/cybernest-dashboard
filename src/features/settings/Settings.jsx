@@ -1,14 +1,13 @@
-// System settings, appearance, and system health.
+// System settings (general, security, enrollment) and system health.
 
 import { useEffect, useState } from "react";
 import { RefreshButton } from "../../components/common/RefreshButton";
-import { ThemeSegmented } from "../../components/common/ThemeToggle";
-import { getDepartments } from "../departments/departmentService";
+import { setDateSettings } from "../../utils/dateFormat";
 import { getSettings, getSystemHealth, resetSettings, updateSettings } from "./settingsService";
+import { formatDateTime } from "../../utils/dateFormat";
 
-export function SettingsView({ token, organizationId, policies, showToast }) {
+export function SettingsView({ token, organizationId, showToast }) {
   const [settings, setSettings] = useState(null);
-  const [departments, setDepartments] = useState([]);
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,10 +16,9 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
     setLoading(true);
     return Promise.all([
       getSettings(token, organizationId),
-      getDepartments(token, { organization_id: organizationId, limit: 100 }),
       getSystemHealth(token),
     ])
-      .then(([s, d, h]) => { setSettings(s); setDepartments(d.departments); setHealth(h); })
+      .then(([s, h]) => { setSettings(s); setDateSettings(s); setHealth(h); })
       .catch((err) => showToast(err.message, true))
       .finally(() => setLoading(false));
   }
@@ -35,6 +33,7 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
     try {
       const data = await updateSettings(token, settings);
       setSettings(data.settings);
+      setDateSettings(data.settings);
       showToast("Settings saved");
     } catch (err) {
       showToast(err.message, true);
@@ -48,6 +47,7 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
     try {
       const data = await resetSettings(token);
       setSettings(data.settings);
+      setDateSettings(data.settings);
       showToast("Settings restored to defaults");
     } catch (err) {
       showToast(err.message, true);
@@ -61,16 +61,6 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>System Settings</h2>
         <RefreshButton onRefresh={load} />
-      </div>
-
-      <div className="policy-panel" style={{ marginBottom: "1.5rem" }}>
-        <div className="appearance-row">
-          <div>
-            <h3 style={{ fontSize: "0.95rem", margin: 0 }}>Appearance</h3>
-            <p>Choose the dashboard theme. Your choice is saved on this browser.</p>
-          </div>
-          <ThemeSegmented />
-        </div>
       </div>
 
       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1.2rem" }}>
@@ -121,30 +111,6 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>Used when generating a QR code without picking a specific Enrollment Profile.</p>
         </div>
 
-        <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-          <h3 style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>Default Policy & Department</h3>
-          <div className="policy-form">
-            <select value={settings.default_policy_id || ""} onChange={(e) => set("default_policy_id", e.target.value || null)}>
-              <option value="">No default policy</option>
-              {policies.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select value={settings.default_department_id || ""} onChange={(e) => set("default_department_id", e.target.value || null)}>
-              <option value="">No default department</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
-          <h3 style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>Notifications</h3>
-          <select value={settings.default_notification_priority} onChange={(e) => set("default_notification_priority", e.target.value)}>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
-        </div>
-
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
           <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Settings"}</button>
           <button type="button" className="ghost-dark" onClick={handleReset}>Restore Defaults</button>
@@ -159,7 +125,7 @@ export function SettingsView({ token, organizationId, policies, showToast }) {
               <tr><td>Database</td><td style={{ textAlign: "right" }}><span className={`badge ${health.database === "Healthy" ? "active" : "suspended"}`}>{health.database}</span></td></tr>
               <tr><td>API Server</td><td style={{ textAlign: "right" }}><span className="badge active">{health.api_server}</span></td></tr>
               <tr><td>Notification Service (FCM)</td><td style={{ textAlign: "right" }}><span className={`badge ${health.notification_service === "Connected" ? "active" : "suspended"}`}>{health.notification_service}</span></td></tr>
-              <tr><td>Server Time</td><td style={{ textAlign: "right" }}>{new Date(health.server_time).toLocaleString()}</td></tr>
+              <tr><td>Server Time</td><td style={{ textAlign: "right" }}>{formatDateTime(health.server_time)}</td></tr>
             </tbody>
           </table></div>
         )}

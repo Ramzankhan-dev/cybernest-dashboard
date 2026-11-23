@@ -10,6 +10,7 @@ import { getDepartments } from "../departments/departmentService";
 import { isDeviceOnline } from "../devices/deviceUtils";
 import { getEmployees } from "../employees/employeeService";
 import { ManagerCustomReportBuilder } from "./ManagerCustomReport";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function ReportCard({ title, stat, headers, rows, filenameBase }) {
   return (
@@ -78,8 +79,8 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
   const securityRows = [];
   devices.forEach((d) => {
     const name = d.employee_name || d.device_uid;
-    if (d.is_rooted) securityRows.push([name, "Root access detected", new Date(d.last_seen).toLocaleString()]);
-    if (d.last_seen && !isDeviceOnline(d)) securityRows.push([name, "Device offline", new Date(d.last_seen).toLocaleString()]);
+    if (d.is_rooted) securityRows.push([name, "Root access detected", formatDateTime(d.last_seen)]);
+    if (d.last_seen && !isDeviceOnline(d)) securityRows.push([name, "Device offline", formatDateTime(d.last_seen)]);
   });
   const securityHeaders = ["Device", "Issue", "Detected at"];
 
@@ -95,7 +96,7 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
   // 6. Activity / Command Report (date-range filterable)
   const activityHeaders = ["Time", "Admin", "Command", "Device", "Status"];
   const activityRows = logs.map((l) => [
-    new Date(l.issued_at).toLocaleString(), l.admin_name || "System", l.command_type, l.employee_name || l.device_uid, l.status,
+    formatDateTime(l.issued_at), l.admin_name || "System", l.command_type, l.employee_name || l.device_uid, l.status,
   ]);
 
   // 7. Department Usage
@@ -112,7 +113,7 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
   const complianceHeaders = ["Device", "Employee", "Department", "Policy", "Status", "Last Sync"];
   const complianceReportRows = complianceRows.map((r) => [
     r.model || r.device_uid, r.assigned_employee_name || r.employee_name || "—", r.department_name || "—",
-    r.policy_name || "—", r.compliance_status, r.last_seen ? new Date(r.last_seen).toLocaleString() : "Never",
+    r.policy_name || "—", r.compliance_status, r.last_seen ? formatDateTime(r.last_seen) : "Never",
   ]);
 
   // 10. Application Report (SRS-015)

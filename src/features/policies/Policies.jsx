@@ -12,6 +12,7 @@ import {
   setPolicyStatus,
   unassignPolicyFromAll,
 } from "./policyService";
+import { formatDate } from "../../utils/dateFormat";
 
 export function PoliciesPageView({ token, organizationId, showToast, onGlobalRefresh, isSuperAdmin = false, onBack }) {
   const [policies, setPolicies] = useState([]);
@@ -150,7 +151,7 @@ export function PoliciesPageView({ token, organizationId, showToast, onGlobalRef
                 <td>{p.assigned_devices_count}</td>
                 <td>{p.assigned_departments_count}</td>
                 <td><span className={`badge ${p.status === "active" ? "active" : "suspended"}`}>{p.status}</span></td>
-                <td>{new Date(p.updated_at || p.created_at).toLocaleDateString()}</td>
+                <td>{formatDate(p.updated_at || p.created_at)}</td>
                 {!isSuperAdmin && (
                   <td className="actions">
                     <button onClick={() => { setEditingPolicy(p); setShowFormModal(true); }}>Edit</button>

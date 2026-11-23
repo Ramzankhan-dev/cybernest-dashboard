@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { KpiCard } from "../../components/common/KpiCard";
 import { forceSyncDevice, getCompliance, getComplianceSummary } from "./complianceService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function ComplianceView({ token, organizationId, isSuperAdmin, showToast }) {
   const [rows, setRows] = useState([]);
@@ -103,7 +104,7 @@ export function ComplianceView({ token, organizationId, isSuperAdmin, showToast 
                 <td>{r.policy_name || "—"}</td>
                 <td>{r.policy_version || "—"}</td>
                 <td><span className={`badge ${badgeClass(r.compliance_status)}`}>{r.compliance_status}</span></td>
-                <td>{r.last_seen ? new Date(r.last_seen).toLocaleString() : "Never"}</td>
+                <td>{r.last_seen ? formatDateTime(r.last_seen) : "Never"}</td>
                 <td className="actions">
                   <button disabled={syncing !== null} onClick={() => handleForceSync(r)}>{syncing === r.device_uid ? "Syncing..." : "Force Sync"}</button>
                 </td>

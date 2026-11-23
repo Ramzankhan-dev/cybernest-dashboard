@@ -6,11 +6,12 @@ import { KpiCard } from "../../components/common/KpiCard";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { getPlatformReport } from "../reports/reportService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 const PAGE_SIZE = 50;
 const fmt = (d) => {
   const date = d ? new Date(d) : null;
-  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : "—";
+  return date && !Number.isNaN(date.getTime()) ? formatDateTime(date) : "—";
 };
 
 export function CriticalEventsView({ token }) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { sendCommand } from "../commands/commandService";
 import { getDevices, getGeofenceAlerts, removeGeofence, setGeofence } from "./deviceService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function LocationPanel({ device, token, onCommandSent, readOnly }) {
   const [lastLat, setLastLat] = useState(device.last_lat);
@@ -106,7 +107,7 @@ export function LocationPanel({ device, token, onCommandSent, readOnly }) {
       {hasLocation ? (
         <>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.4rem 0 0.8rem" }}>
-            Last reported: {lastAt ? new Date(lastAt).toLocaleString() : "—"} — <span className="mono">{lastLat.toFixed(5)}, {lastLng.toFixed(5)}</span>
+            Last reported: {lastAt ? formatDateTime(lastAt) : "—"} — <span className="mono">{lastLat.toFixed(5)}, {lastLng.toFixed(5)}</span>
             {" "}· <a href={googleMapsUrl} target="_blank" rel="noreferrer">Open in Google Maps</a>
           </p>
           <iframe
@@ -167,7 +168,7 @@ export function LocationPanel({ device, token, onCommandSent, readOnly }) {
           <tbody>
             {alerts.map((a, i) => (
               <tr key={i}>
-                <td>{new Date(a.triggered_at).toLocaleString()}</td>
+                <td>{formatDateTime(a.triggered_at)}</td>
                 <td className="mono">{a.lat != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : "—"}</td>
               </tr>
             ))}

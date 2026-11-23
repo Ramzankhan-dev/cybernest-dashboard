@@ -13,6 +13,8 @@ import { getUserInitials } from "../../utils/formatters";
 import { getDevices, getDeviceStats } from "../../features/devices/deviceService";
 import { getPolicies } from "../../features/policies/policyService";
 import { getDeviceRequests } from "../../features/notifications/notificationService";
+import { getSettings } from "../../features/settings/settingsService";
+import { setDateSettings } from "../../utils/dateFormat";
 
 export default function MainLayout({ token, user, onLogout }) {
   const [page, setPage] = usePageNavigation();
@@ -23,6 +25,8 @@ export default function MainLayout({ token, user, onLogout }) {
   const [toast, setToast] = useState(null);
   const [policies, setPolicies] = useState([]);
   const [navOpen, setNavOpen] = useState(false);
+  // Date/time display follows the organization's Settings → General; pages render once it is loaded.
+  const [datePrefsReady, setDatePrefsReady] = useState(!!user.is_super_admin);
 
   async function loadPolicies() {
     try {
@@ -56,6 +60,12 @@ export default function MainLayout({ token, user, onLogout }) {
   useEffect(() => {
     loadDevices();
     loadPolicies();
+    if (!user.is_super_admin) {
+      getSettings(token, user.organization_id)
+        .then((s) => setDateSettings(s))
+        .catch(() => {})
+        .finally(() => setDatePrefsReady(true));
+    }
   }, []);
 
   // Pop-up for new requests sent from devices (unenroll request, support ticket).
@@ -138,7 +148,7 @@ export default function MainLayout({ token, user, onLogout }) {
           onLogout={onLogout}
           onMenuClick={() => setNavOpen(true)}
         />
-        <AppRoutes
+        {datePrefsReady && <AppRoutes
           page={page}
           setPage={setPage}
           token={token}
@@ -148,7 +158,7 @@ export default function MainLayout({ token, user, onLogout }) {
           loadPolicies={loadPolicies}
           refreshShared={() => Promise.all([loadDevices(), loadPolicies()])}
           showToast={showToast}
-        />
+        />}
       </div>
 
       {toast && (

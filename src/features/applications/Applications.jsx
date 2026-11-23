@@ -14,6 +14,7 @@ import {
   getApplications,
   getInstallHistory,
 } from "./applicationService";
+import { formatDate, formatDateTime } from "../../utils/dateFormat";
 
 export function ApplicationsView({ token, organizationId, showToast }) {
   const [apps, setApps] = useState([]);
@@ -135,7 +136,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
                 <td>{a.version || "—"}</td>
                 <td>{a.category}</td>
                 <td>{a.install_type}</td>
-                <td>{a.package_id ? `${(a.file_size_bytes / 1024 / 1024).toFixed(1)} MB · ${new Date(a.apk_uploaded_at).toLocaleDateString()}` : "No APK"}</td>
+                <td>{a.package_id ? `${(a.file_size_bytes / 1024 / 1024).toFixed(1)} MB · ${formatDate(a.apk_uploaded_at)}` : "No APK"}</td>
                 <td>{a.assigned_devices_count}</td>
                 <td>{a.installed_count}</td>
                 <td><span className={`badge ${a.status === "active" ? "active" : "suspended"}`}>{a.status === "active" ? "Allowed" : "Blocked"}</span></td>
@@ -177,7 +178,7 @@ export function ApplicationsView({ token, organizationId, showToast }) {
                 <td>{h.app_name}{h.version_name ? ` (v${h.version_name})` : ""}</td>
                 <td>{h.device_model || h.device_uid}</td>
                 <td>{h.installed_by_name || "—"}</td>
-                <td>{new Date(h.installed_at).toLocaleString()}</td>
+                <td>{formatDateTime(h.installed_at)}</td>
               </tr>
             ))}
           </tbody>

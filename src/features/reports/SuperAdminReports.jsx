@@ -6,11 +6,12 @@ import { RefreshButton } from "../../components/common/RefreshButton";
 import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { getCustomReportMeta, getPlatformReport, runCustomReport } from "./reportService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 const fmtDate = (d) => {
   if (!d) return "—";
   const date = new Date(d);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "—" : formatDateTime(date);
 };
 const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "—");
 const arr = (v) => (Array.isArray(v) ? v : []);

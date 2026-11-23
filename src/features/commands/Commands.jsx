@@ -6,6 +6,7 @@ import { getDepartments } from "../departments/departmentService";
 import { getDevices } from "../devices/deviceService";
 import { getAllOrganizations } from "../organizations/organizationService";
 import { cancelCommand, getActivityLogs, resendCommand, retryCommand, sendCommandMulti } from "./commandService";
+import { formatDateTime } from "../../utils/dateFormat";
 
 export function CommandCenterView({ token, organizationId, isSuperAdmin, showToast }) {
   const [tab, setTab] = useState("pending");
@@ -229,7 +230,7 @@ export function CommandCenterView({ token, organizationId, isSuperAdmin, showToa
                 <td>{c.device_uid}</td>
                 <td>{c.employee_full_name || c.employee_name || "—"}</td>
                 <td>{c.admin_name || "System"}</td>
-                <td>{new Date(c.issued_at).toLocaleString()}</td>
+                <td>{formatDateTime(c.issued_at)}</td>
                 <td>
                   <span className={`badge ${c.status === "executed" ? "active" : c.status === "failed" ? "suspended" : "setup"}`}>{statusLabel(c.status)}</span>
                   {c.error_message && <div style={{ fontSize: "0.7rem", color: "var(--danger)", marginTop: "0.2rem" }}>{c.error_message}</div>}
