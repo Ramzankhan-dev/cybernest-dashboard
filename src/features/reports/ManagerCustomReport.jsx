@@ -1,5 +1,5 @@
-// Custom Report Builder for Department Managers: same builder as Super Admin's,
-// but the data is always limited to the manager's own department (no organization scope).
+// Custom Report Builder for Org Admin and Department Manager (same builder idea as Super Admin).
+// Data scope is decided by the backend from the logged-in role.
 
 import { useEffect, useState } from "react";
 import { RefreshButton } from "../../components/common/RefreshButton";
@@ -94,7 +94,7 @@ export function ManagerCustomReportBuilder({ token }) {
   return (
     <div>
       <form onSubmit={handleRun} className="policy-panel" style={{ marginBottom: "1.5rem" }}>
-        <label style={labelStyle}>Data source (your department only)</label>
+        <label style={labelStyle}>Data source</label>
         <select value={entityKey} onChange={(e) => changeEntity(e.target.value)}>
           {meta.entities.map((en) => <option key={en.key} value={en.key}>{en.label}</option>)}
         </select>
