@@ -65,7 +65,6 @@ export function SettingsView({ token, organizationId, showToast }) {
         <RefreshButton onRefresh={load} />
       </div>
 
-  
       <form onSubmit={handleSave}>
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>
           <h3 style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>General</h3>
@@ -134,7 +133,6 @@ export function SettingsView({ token, organizationId, showToast }) {
             </tbody>
           </table></div>
         )}
-      
       </div>
     </section>
   );
