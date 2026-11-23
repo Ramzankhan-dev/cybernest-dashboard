@@ -413,7 +413,7 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
                     {/* A Department Manager's list hides departments that already have a manager (their own stays). */}
                     <select value={e.department_id} disabled={acting !== null} onChange={(ev) => handleDepartmentChange(e, ev.target.value)}>
                       {departments
-                        .filter((d) => e.role !== "DepartmentManager" || String(d.id) === String(e.department_id) || !(d.manager_id || d.manager_employee_id))
+                        .filter((d) => e.role !== "DepartmentManager" || String(d.id) === String(e.department_id) || !d.manager_id)
                         .map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </td>

@@ -18,8 +18,6 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
     airplane_mode_blocked: false, location_services_blocked: false, factory_reset_blocked: false,
     password_required: false, password_min_length: "", max_failed_attempts: "", auto_lock_timeout_minutes: "",
     blocked_apps: "", prevent_unknown_sources: false, prevent_play_store: false,
-    root_detection_enabled: true, developer_options_disabled: false,
-    vpn_required: false, mobile_data_restricted: false,
     kiosk_mode: false, kiosk_package: "", working_hours_start: "", working_hours_end: "",
   };
   // New policy: working-hours start is pre-filled with the current time (editable);

@@ -34,17 +34,6 @@ export async function updateDepartment(token, id, payload) {
   return data;
 }
 
-export async function assignDepartmentManager(token, id, managerEmployeeId) {
-  const res = await fetch(`${BASE_URL}/api/departments/${id}/manager`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-    body: JSON.stringify({ manager_employee_id: managerEmployeeId || null }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to assign manager");
-  return data;
-}
-
 export async function deleteDepartment(token, id) {
   const res = await fetch(`${BASE_URL}/api/departments/${id}`, {
     method: "DELETE",
