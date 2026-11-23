@@ -18,6 +18,7 @@ import {
   IconScroll,
   IconUsers,
   IconMegaphone,
+  IconPackage,
   IconRefresh,
   IconShieldAlert,
   IconShieldCheck,
@@ -37,12 +38,17 @@ import {
   getDashboardSummary,
 } from "./dashboardService";
 import { formatDateTime, formatTime } from "../../utils/dateFormat";
+import { getAuditLogs } from "../audit/auditService";
+import { getDeviceRequests } from "../notifications/notificationService";
 
 export function DashboardOverview({ token, user, onNavigate }) {
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [activity, setActivity] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [requests, setRequests] = useState([]); // device requests (Organization Admin only)
+  const [auditRows, setAuditRows] = useState([]); // recent audit logs (Organization Admin only)
+  const [activityTab, setActivityTab] = useState("commands");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,6 +66,14 @@ export function DashboardOverview({ token, user, onNavigate }) {
       setCharts(c);
       setActivity(a);
       setAlerts(al);
+      if (!user.is_super_admin && user.role === "OrganizationAdmin") {
+        const [rq, au] = await Promise.all([
+          getDeviceRequests(token).catch(() => ({ requests: [] })),
+          getAuditLogs(token, { limit: 20 }).catch(() => ({ logs: [] })),
+        ]);
+        setRequests(rq.requests || []);
+        setAuditRows(au.logs || []);
+      }
       setLastUpdated(new Date());
       setError("");
     } catch (err) {
@@ -108,6 +122,8 @@ export function DashboardOverview({ token, user, onNavigate }) {
   const avgBattery = charts?.device_health?.avg_battery;
   const isSA = !!user.is_super_admin;
   const isMgr = !isSA && user.role === "DepartmentManager"; // department-scoped view
+  const isOrg = !isSA && !isMgr; // Organization Admin
+  const recentRequests = requests.filter((r) => Date.now() - new Date(r.created_at).getTime() < 7 * 24 * 60 * 60 * 1000);
 
   return (
     <section>
@@ -150,11 +166,14 @@ export function DashboardOverview({ token, user, onNavigate }) {
           </>
         ) : (
           <>
+            <KpiCard label="Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
+            <KpiCard label="Departments" value={summary.total_departments} icon={IconFolder} tone="cyan" onClick={() => onNavigate("departments")} />
+            <KpiCard label="Unassigned Devices" value={summary.unassigned_devices} icon={IconSmartphone} tone="violet" onClick={() => onNavigate("devices")} />
             <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
-            <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("alerts")} />
-            <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("activity")} />
+            <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("compliance")} />
+            <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("commands")} />
             <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
-            <KpiCard label="Organizations" value={summary.total_organizations} icon={IconBuilding} tone="cyan" onClick={() => onNavigate("org")} />
+            <KpiCard label="Device Requests" value={recentRequests.length} icon={IconMegaphone} tone="rose" hint="last 7 days" onClick={() => onNavigate("notifications")} />
           </>
         )}
       </div>
@@ -228,10 +247,11 @@ export function DashboardOverview({ token, user, onNavigate }) {
               <div className="quick-actions qa-tiles">
                 <button className="tone-violet" onClick={() => onNavigate("devices")}><span className="qa-icon"><IconSmartphone size={19} /></span>Enroll Device</button>
                 <button className="tone-mint" onClick={() => onNavigate("employees")}><span className="qa-icon"><IconUserPlus size={19} /></span>Add Employee</button>
-                <button className="tone-indigo" onClick={() => onNavigate("departments")}><span className="qa-icon"><IconShieldCheck size={19} /></span>Create Policy</button>
+                <button className="tone-indigo" onClick={() => onNavigate("policies")}><span className="qa-icon"><IconShieldCheck size={19} /></span>Create Policy</button>
+                <button className="tone-cyan" onClick={() => onNavigate("applications")}><span className="qa-icon"><IconPackage size={19} /></span>Add Application</button>
                 <button className="tone-rose" onClick={() => onNavigate("notifications")}><span className="qa-icon"><IconMegaphone size={19} /></span>Send Notification</button>
-                <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
-                <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
+                <button className="tone-amber" onClick={() => onNavigate("activity")}><span className="qa-icon"><IconScroll size={19} /></span>Audit Logs</button>
+                <button className="tone-mint" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
               </div>
             )}
           </div>
@@ -259,6 +279,29 @@ export function DashboardOverview({ token, user, onNavigate }) {
               ))}
             </div>
           </div>
+          {isOrg && (
+            <div className="dash-card">
+              <div className="card-header">
+                <div>
+                  <h3>Recent Device Requests</h3>
+                  <p className="card-subtitle">{requests.length > 0 ? `${requests.length} from devices` : "No requests"}</p>
+                </div>
+                <button className="card-link" onClick={() => onNavigate("notifications")}>View all</button>
+              </div>
+              {requests.length === 0 && <p className="empty-state">No unenroll or support requests.</p>}
+              <div className="alert-scroll">
+                {requests.slice(0, 6).map((r) => (
+                  <div key={r.id} className="alert-card" style={{ marginBottom: "0.5rem" }}>
+                    <span className="alert-icon"><IconMegaphone size={16} /></span>
+                    <div>
+                      <div className="alert-title">{r.type}</div>
+                      <div className="alert-desc">{r.details || "—"} · {formatDateTime(r.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -303,11 +346,33 @@ export function DashboardOverview({ token, user, onNavigate }) {
         <div className="card-header">
           <div>
             <h3>Recent Activities</h3>
-            <p className="card-subtitle">{isSA ? "Latest activity across the platform" : "Latest commands issued to devices"}</p>
+            <p className="card-subtitle">{isSA ? "Latest activity across the platform" : isOrg && activityTab === "audit" ? "Latest audit log entries" : "Latest commands issued to devices"}</p>
           </div>
+          {isOrg && (
+            <div style={{ display: "flex", gap: "0.4rem" }}>
+              <button type="button" className={activityTab === "commands" ? "" : "ghost-dark"} onClick={() => setActivityTab("commands")}>Commands</button>
+              <button type="button" className={activityTab === "audit" ? "" : "ghost-dark"} onClick={() => setActivityTab("audit")}>Audit Logs</button>
+            </div>
+          )}
         </div>
-        {activity.length === 0 && <p className="empty-state">No recent activity.</p>}
-        {activity.length > 0 && (
+        {isOrg && activityTab === "audit" && (
+          auditRows.length === 0 ? <p className="empty-state">No audit entries.</p> : (
+            <div className="table-scroll"><table>
+              <thead><tr><th>Time</th><th>Action</th><th>User</th></tr></thead>
+              <tbody>
+                {auditRows.map((l) => (
+                  <tr key={l.id}>
+                    <td className="mono" style={{ color: "var(--text-muted)" }}>{formatDateTime(l.created_at)}</td>
+                    <td><span className="badge">{l.action}</span></td>
+                    <td>{l.user_name || l.user_email || "System"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          )
+        )}
+        {!(isOrg && activityTab === "audit") && activity.length === 0 && <p className="empty-state">No recent activity.</p>}
+        {!(isOrg && activityTab === "audit") && activity.length > 0 && (
           <div className="table-scroll"><table>
             <thead><tr><th>Time</th><th>Activity</th><th>{isSA ? "Organization / User" : "Device"}</th></tr></thead>
             <tbody>
