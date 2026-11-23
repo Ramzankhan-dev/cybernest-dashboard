@@ -11,6 +11,7 @@ export function SettingsView({ token, organizationId, showToast }) {
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sessionUnit, setSessionUnit] = useState("hours");
 
   function load() {
     setLoading(true);
@@ -18,7 +19,7 @@ export function SettingsView({ token, organizationId, showToast }) {
       getSettings(token, organizationId),
       getSystemHealth(token),
     ])
-      .then(([s, h]) => { setSettings(s); setDateSettings(s); setHealth(h); })
+      .then(([s, h]) => { setSettings(s); setSessionUnit(s.session_timeout_minutes % 60 === 0 ? "hours" : "minutes"); setDateSettings(s); setHealth(h); })
       .catch((err) => showToast(err.message, true))
       .finally(() => setLoading(false));
   }
@@ -47,6 +48,7 @@ export function SettingsView({ token, organizationId, showToast }) {
     try {
       const data = await resetSettings(token);
       setSettings(data.settings);
+      setSessionUnit(data.settings.session_timeout_minutes % 60 === 0 ? "hours" : "minutes");
       setDateSettings(data.settings);
       showToast("Settings restored to defaults");
     } catch (err) {
@@ -94,11 +96,17 @@ export function SettingsView({ token, organizationId, showToast }) {
             <label>Lockout duration (min):
               <input type="number" min="1" value={settings.lockout_duration_minutes} onChange={(e) => set("lockout_duration_minutes", parseInt(e.target.value))} style={{ marginLeft: "0.4rem", width: "70px" }} />
             </label>
-            <label>Session timeout (days):
-              <input type="number" min="1" max="30" value={settings.session_timeout_days} onChange={(e) => set("session_timeout_days", parseInt(e.target.value))} style={{ marginLeft: "0.4rem", width: "70px" }} />
+            <label>Session timeout:
+              <input type="number" min="1" value={sessionUnit === "hours" ? Math.round(settings.session_timeout_minutes / 60) : settings.session_timeout_minutes}
+                onChange={(e) => { const n = parseInt(e.target.value); set("session_timeout_minutes", Number.isNaN(n) ? 0 : n * (sessionUnit === "hours" ? 60 : 1)); }}
+                style={{ marginLeft: "0.4rem", width: "80px" }} />
+              <select value={sessionUnit} onChange={(e) => setSessionUnit(e.target.value)} style={{ marginLeft: "0.4rem" }}>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+              </select>
             </label>
           </div>
-          <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>Session timeout applies to newly issued logins — existing sessions keep their original expiry.</p>
+          <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>Session timeout applies to newly issued logins — existing sessions keep their original expiry. Default is 24 hours; allowed range is 5 minutes to 30 days.</p>
         </div>
 
         <div className="policy-panel" style={{ marginBottom: "1.2rem" }}>

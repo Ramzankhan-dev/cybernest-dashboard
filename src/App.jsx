@@ -5,7 +5,7 @@
 // The session is kept in sessionStorage so a browser reload (Ctrl+R / F5)
 // doesn't send the user back to the login page. It is cleared on sign-out
 // and when the tab is closed.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LoginScreen } from "./features/auth/Login";
 import MainLayout from "./components/layout/MainLayout";
 import { SESSION_STORAGE_KEY } from "./config/constants";
@@ -60,6 +60,13 @@ export default function App() {
     setRefreshToken(null);
     saveSession(null);
   }
+
+  // End the session as soon as the login token expires (Settings → Security → Session timeout).
+  useEffect(() => {
+    if (!token) return undefined;
+    const timer = setInterval(() => { if (isTokenExpired(token)) handleLogout(); }, 15000);
+    return () => clearInterval(timer);
+  }, [token]);
 
   if (!token) {
     return <LoginScreen onLogin={handleLogin} />;
