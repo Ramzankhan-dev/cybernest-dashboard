@@ -44,7 +44,7 @@ export default function AppRoutes({ page, setPage, token, user, devices, policie
       {page === "notifications" && <NotificationCenterView token={token} devices={devices} organizationId={user.organization_id} />}
       {page === "reports" && (user.is_super_admin
         ? <SuperAdminReportsView token={token} />
-        : <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} onRefreshShared={refreshShared} />)}
+        : <ReportsView devices={devices} policies={policies} token={token} organizationId={user.organization_id} onRefreshShared={refreshShared} isManager={user.role === "DepartmentManager"} />)}
 
       {page === "devices" && (user.is_super_admin
         ? <DevicesOrgCardsView token={token} policies={policies} showToast={showToast} user={user} />

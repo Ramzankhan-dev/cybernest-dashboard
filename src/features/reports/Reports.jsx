@@ -9,6 +9,7 @@ import { getCompliance } from "../compliance/complianceService";
 import { getDepartments } from "../departments/departmentService";
 import { isDeviceOnline } from "../devices/deviceUtils";
 import { getEmployees } from "../employees/employeeService";
+import { ManagerCustomReportBuilder } from "./ManagerCustomReport";
 
 export function ReportCard({ title, stat, headers, rows, filenameBase }) {
   return (
@@ -23,7 +24,8 @@ export function ReportCard({ title, stat, headers, rows, filenameBase }) {
   );
 }
 
-export function ReportsView({ devices, policies, token, organizationId, onRefreshShared }) {
+export function ReportsView({ devices, policies, token, organizationId, onRefreshShared, isManager = false }) {
+  const [tab, setTab] = useState("reports");
   const [logs, setLogs] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -44,10 +46,10 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
     return Promise.all([
       onRefreshShared ? onRefreshShared() : null,
       loadDateFiltered(),
-      getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {}),
+      isManager ? null : getDepartments(token, { organization_id: organizationId, limit: 100 }).then((data) => setDepartments(data.departments)).catch(() => {}),
       getEmployees(token, { organization_id: organizationId, limit: 500 }).then((data) => setEmployees(data.employees)).catch(() => {}),
       getCompliance(token, { organization_id: organizationId, limit: 500 }).then((data) => setComplianceRows(data.compliance)).catch(() => {}),
-      getApplications(token, { organization_id: organizationId, limit: 500 }).then((data) => setApplications(data.applications)).catch(() => {}),
+      isManager ? null : getApplications(token, { organization_id: organizationId, limit: 500 }).then((data) => setApplications(data.applications)).catch(() => {}),
     ]);
   }
 
@@ -119,15 +121,35 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
     a.name, a.package_name, a.category, a.status === "active" ? "Allowed" : "Blocked", a.assigned_devices_count, a.installed_count,
   ]);
 
+  const managerTabs = isManager && (
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem" }}>
+      <button type="button" className={tab === "reports" ? "" : "ghost-dark"} onClick={() => setTab("reports")}>Department Reports</button>
+      <button type="button" className={tab === "custom" ? "" : "ghost-dark"} onClick={() => setTab("custom")}>Custom Report Builder</button>
+    </div>
+  );
+
+  if (isManager && tab === "custom") {
+    return (
+      <section>
+        <div className="dash-header-row">
+          <h2 style={{ border: "none", margin: 0 }}>Reports</h2>
+        </div>
+        {managerTabs}
+        <ManagerCustomReportBuilder token={token} />
+      </section>
+    );
+  }
+
   return (
     <section>
       <div className="dash-header-row">
         <h2 style={{ border: "none", margin: 0 }}>Reports</h2>
         <RefreshButton onRefresh={loadAll} />
       </div>
+      {managerTabs}
 
       <div className="policy-form" style={{ marginBottom: "1rem" }}>
-        <label style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Date range for Activity Report:</label>
+        <label style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Date range for {isManager ? "Command Activity" : "Activity"} Report:</label>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         <button type="button" onClick={loadDateFiltered}>Apply</button>
@@ -135,15 +157,15 @@ export function ReportsView({ devices, policies, token, organizationId, onRefres
 
       <div className="report-grid">
         <ReportCard title="Device Inventory" stat={`${devices.length} devices`} headers={inventoryHeaders} rows={inventoryRows} filenameBase="device-inventory" />
-        <ReportCard title="Department Usage" stat={`${departments.length} departments`} headers={deptHeaders} rows={deptRows} filenameBase="department-usage" />
+        {!isManager && <ReportCard title="Department Usage" stat={`${departments.length} departments`} headers={deptHeaders} rows={deptRows} filenameBase="department-usage" />}
         <ReportCard title="Employee Report" stat={`${employees.length} employees`} headers={employeeHeaders} rows={employeeRows} filenameBase="employee-report" />
-        <ReportCard title="Policy Report" stat={`${policies.length} policies`} headers={policyHeaders} rows={policyRows} filenameBase="policy-report" />
+        {!isManager && <ReportCard title="Policy Report" stat={`${policies.length} policies`} headers={policyHeaders} rows={policyRows} filenameBase="policy-report" />}
         <ReportCard title="Compliance Report" stat={`${complianceReportRows.length} assigned`} headers={complianceHeaders} rows={complianceReportRows} filenameBase="compliance-report" />
-        <ReportCard title="Application Report" stat={`${applications.length} apps`} headers={appHeaders} rows={appRows} filenameBase="application-report" />
+        {!isManager && <ReportCard title="Application Report" stat={`${applications.length} apps`} headers={appHeaders} rows={appRows} filenameBase="application-report" />}
         <ReportCard title="Security Report" stat={`${securityRows.length} issues`} headers={securityHeaders} rows={securityRows} filenameBase="security-report" />
         <ReportCard title="Battery Health" stat={`Avg. ${avgBattery}%`} headers={batteryHeaders} rows={batteryRows} filenameBase="battery-health" />
         <ReportCard title="Storage Report" stat={`${storageRows.length} devices`} headers={storageHeaders} rows={storageRows} filenameBase="storage-report" />
-        <ReportCard title="Activity Report" stat={`${logs.length} events`} headers={activityHeaders} rows={activityRows} filenameBase="activity-report" />
+        <ReportCard title={isManager ? "Command Activity Report" : "Activity Report"} stat={`${logs.length} events`} headers={activityHeaders} rows={activityRows} filenameBase="activity-report" />
       </div>
     </section>
   );
