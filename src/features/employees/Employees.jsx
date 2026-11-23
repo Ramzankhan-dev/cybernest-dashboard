@@ -75,6 +75,7 @@ export function EmployeesOrgCardsView({ token }) {
 export function EmployeesView({ token, organizationId, onBack, user }) {
   const canCreateEmployees = user?.role === "OrganizationAdmin";
   const isSuperAdmin = !!user?.is_super_admin;
+  const isManager = user?.role === "DepartmentManager"; // sees only their own department
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [total, setTotal] = useState(0);
@@ -357,20 +358,24 @@ export function EmployeesView({ token, organizationId, onBack, user }) {
 
       <form onSubmit={handleSearchSubmit} className="policy-form" style={{ marginBottom: "1rem" }}>
         <input type="text" placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setPage(1); }}>
-          <option value="">All departments</option>
-          {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+        {!isManager && (
+          <select value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setPage(1); }}>
+            <option value="">All departments</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        )}
         <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
-        <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
-          <option value="">All roles</option>
-          <option value="Employee">Employee</option>
-          <option value="DepartmentManager">Department Manager</option>
-        </select>
+        {!isManager && (
+          <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
+            <option value="">All roles</option>
+            <option value="Employee">Employee</option>
+            <option value="DepartmentManager">Department Manager</option>
+          </select>
+        )}
         <select value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="">Sort: Newest</option>
           <option value="name">Sort: Name</option>

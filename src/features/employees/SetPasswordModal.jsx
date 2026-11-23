@@ -34,7 +34,7 @@ export function SetPasswordModal({ employee, token, onClose, onSaved }) {
         <button type="button" className="modal-close" aria-label="Close dialog" title="Close" onClick={onClose}><IconX size={16} /></button>
         <h3 style={{ marginTop: 0 }}>Set Password — {employee.name}</h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.8rem" }}>
-          Used for Employee Login on the Android agent (SRS-A04). The employee signs in with their Employee ID ({employee.employee_code}) or email.
+          Used for Employee Login on the Android agent . The employee signs in with their Employee ID ({employee.employee_code}) or email.
           {employee.role === "DepartmentManager" && " As a Department Manager, this is also their dashboard login password."}
           {" "}{PASSWORD_HINT}.
         </p>

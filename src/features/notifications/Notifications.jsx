@@ -126,7 +126,6 @@ export function NotificationCenterView({ token, devices, organizationId }) {
           <KpiCard label="Scheduled" value={stats.scheduled} />
           <KpiCard label="Delivered" value={stats.delivered} />
           <KpiCard label="Failed" value={stats.failed} />
-          <KpiCard label="Acknowledged" value={stats.acknowledged} />
         </div>
       )}
 
