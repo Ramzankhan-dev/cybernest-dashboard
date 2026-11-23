@@ -12,6 +12,7 @@ import {
   IconBarChart,
   IconBell,
   IconBuilding,
+  IconCheckCircle,
   IconClock,
   IconFolder,
   IconScroll,
@@ -105,6 +106,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
   const compliancePct = charts ? percentOf(charts.policy_compliance.compliant, (Number(charts.policy_compliance.compliant) || 0) + (Number(charts.policy_compliance.non_compliant) || 0)) : null;
   const avgBattery = charts?.device_health?.avg_battery;
   const isSA = !!user.is_super_admin;
+  const isMgr = !isSA && user.role === "DepartmentManager"; // department-scoped view
 
   return (
     <section>
@@ -137,6 +139,14 @@ export function DashboardOverview({ token, user, onNavigate }) {
             <KpiCard label="Total Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
             <KpiCard label="Critical Events (7 days)" value={summary.critical_events_7d} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("critical")} />
           </>
+        ) : isMgr ? (
+          <>
+            <KpiCard label="Employees" value={summary.total_employees} icon={IconUsers} tone="peach" onClick={() => onNavigate("employees")} />
+            <KpiCard label="Unassigned Devices" value={summary.unassigned_devices} icon={IconSmartphone} tone="cyan" onClick={() => onNavigate("devices")} />
+            <KpiCard label="Policy Violations" value={summary.policy_violations} icon={IconShieldAlert} tone="red" onClick={() => onNavigate("compliance")} />
+            <KpiCard label="Pending Commands" value={summary.pending_commands} icon={IconZap} tone="amber" onClick={() => onNavigate("commands")} />
+            <KpiCard label="Today's Alerts" value={summary.todays_alerts} icon={IconBell} tone="peach" onClick={() => onNavigate("alerts")} />
+          </>
         ) : (
           <>
             <KpiCard label="Active Policies" value={summary.active_policies} icon={IconShieldCheck} tone="indigo" onClick={() => onNavigate("policies")} />
@@ -153,9 +163,9 @@ export function DashboardOverview({ token, user, onNavigate }) {
           {/* Fleet overview hero — includes the Device Health (avg battery) figure */}
           <div className="dash-hero" style={isSA ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
             <div>
-              <div className="hero-eyebrow"><IconActivity size={14} /> Fleet overview</div>
-              <h3>Your devices at a glance</h3>
-              <p>Live status of your managed fleet, refreshed automatically from CyberNest.</p>
+              <div className="hero-eyebrow"><IconActivity size={14} /> {isMgr ? "Department overview" : "Fleet overview"}</div>
+              <h3>{isMgr ? `${summary.department_name || "Your department"} — devices at a glance` : "Your devices at a glance"}</h3>
+              <p>{isMgr ? "Live status of your department's devices, refreshed automatically from CyberNest." : "Live status of your managed fleet, refreshed automatically from CyberNest."}</p>
               <div className="hero-stats">
                 <div className="hero-stat">
                   <strong>{summary.online_devices ?? "—"} / {summary.total_devices ?? "—"}</strong>
@@ -189,7 +199,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
                 <button className="hero-link" onClick={() => onNavigate("reports")}>Reports</button>
               </div>
             </div>
-            {!isSA && <HealthRing value={avgBattery} label="Average battery across fleet" chartTheme={chartTheme} />}
+            {!isSA && <HealthRing value={avgBattery} label={isMgr ? "Average battery across department" : "Average battery across fleet"} chartTheme={chartTheme} />}
           </div>
 
           <div className="dash-card">
@@ -204,6 +214,14 @@ export function DashboardOverview({ token, user, onNavigate }) {
                 <button className="tone-rose" onClick={() => onNavigate("activity")}><span className="qa-icon"><IconScroll size={19} /></span>Audit Logs</button>
                 <button className="tone-cyan" onClick={loadAll}><span className="qa-icon"><IconRefresh size={19} /></span>Refresh Dashboard</button>
                 <button className="tone-amber" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
+              </div>
+            ) : isMgr ? (
+              <div className="quick-actions qa-tiles">
+                <button className="tone-violet" onClick={() => onNavigate("employees")}><span className="qa-icon"><IconSmartphone size={19} /></span>Assign Device</button>
+                <button className="tone-amber" onClick={() => onNavigate("commands")}><span className="qa-icon"><IconZap size={19} /></span>View Commands</button>
+                <button className="tone-rose" onClick={() => onNavigate("notifications")}><span className="qa-icon"><IconMegaphone size={19} /></span>Send Notification</button>
+                <button className="tone-mint" onClick={() => onNavigate("compliance")}><span className="qa-icon"><IconCheckCircle size={19} /></span>Compliance</button>
+                <button className="tone-indigo" onClick={() => onNavigate("reports")}><span className="qa-icon"><IconBarChart size={19} /></span>Generate Report</button>
               </div>
             ) : (
               <div className="quick-actions qa-tiles">
@@ -267,6 +285,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
           gradient={chartTheme.barPrimary}
           chartTheme={chartTheme}
         />
+        {!isMgr && (
         <BarChartCard
           title={isSA ? "Devices per Organization" : "Device Distribution (by Department)"}
           subtitle={isSA ? "Enrolled devices in each organization" : "Devices per department"}
@@ -276,6 +295,7 @@ export function DashboardOverview({ token, user, onNavigate }) {
           gradient={chartTheme.barSecondary}
           chartTheme={chartTheme}
         />
+        )}
       </div>
 
       <div className="dash-card">
