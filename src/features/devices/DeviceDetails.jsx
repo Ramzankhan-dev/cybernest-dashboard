@@ -82,10 +82,14 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
   }
 
   async function handleUnassignPolicy() {
-    if (!window.confirm(`Remove the current policy from this device and reverse its restrictions (camera, Wi-Fi, kiosk, etc.)?`)) return;
+    const selected = policies.find((p) => String(p.id) === String(selectedPolicy));
+    const question = selected
+      ? `Remove only "${selected.name}" from this device and reverse what it enforces? Other assigned policies stay.`
+      : `Remove ALL policies from this device and reverse their restrictions (camera, Wi-Fi, kiosk, etc.)?`;
+    if (!window.confirm(question)) return;
     setSending("unassign_policy");
     try {
-      const data = await unassignDevicePolicy(token, device.device_uid);
+      const data = await unassignDevicePolicy(token, device.device_uid, selected ? selected.id : null);
       onCommandSent(data.message);
       loadCurrentPolicy();
     } catch (err) {
@@ -228,7 +232,7 @@ export function DeviceDetailsView({ device, token, policies, onCommandSent, onCl
                   {sending === "apply_policy" ? "Applying..." : "Apply policy"}
                 </button>
                 <button disabled={sending !== null} onClick={handleUnassignPolicy}>
-                  {sending === "unassign_policy" ? "Removing..." : "Unassign current policy"}
+                  {sending === "unassign_policy" ? "Removing..." : selectedPolicy ? "Unassign selected policy" : "Unassign all policies"}
                 </button>
               </div>
             </>

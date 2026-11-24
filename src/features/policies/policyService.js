@@ -104,8 +104,10 @@ export async function unassignPolicyFromAll(token, id) {
   return data;
 }
 
-export async function unassignDevicePolicy(token, deviceUid) {
-  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy`, {
+// policyId given -> only that policy is removed from the device; omitted -> all of its policies.
+export async function unassignDevicePolicy(token, deviceUid, policyId = null) {
+  const qs = policyId ? `?policy_id=${encodeURIComponent(policyId)}` : "";
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy${qs}`, {
     method: "DELETE",
     headers: authHeaders(token),
   });

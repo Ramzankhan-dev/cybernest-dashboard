@@ -414,6 +414,17 @@ export async function updateDepartment(token, id, payload) {
   return data;
 }
 
+export async function assignDepartmentManager(token, id, managerEmployeeId) {
+  const res = await fetch(`${BASE_URL}/api/departments/${id}/manager`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ manager_employee_id: managerEmployeeId || null }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to assign manager");
+  return data;
+}
+
 export async function deleteDepartment(token, id) {
   const res = await fetch(`${BASE_URL}/api/departments/${id}`, {
     method: "DELETE",
@@ -875,8 +886,9 @@ export async function unassignPolicyFromAll(token, id) {
   return data;
 }
 
-export async function unassignDevicePolicy(token, deviceUid) {
-  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy`, {
+export async function unassignDevicePolicy(token, deviceUid, policyId = null) {
+  const qs = policyId ? `?policy_id=${encodeURIComponent(policyId)}` : "";
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceUid}/policy${qs}`, {
     method: "DELETE",
     headers: authHeaders(token),
   });
