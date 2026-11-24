@@ -18,6 +18,8 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
     airplane_mode_blocked: false, location_services_blocked: false, factory_reset_blocked: false,
     password_required: false, password_min_length: "", max_failed_attempts: "", auto_lock_timeout_minutes: "",
     blocked_apps: "", prevent_unknown_sources: false, prevent_play_store: false,
+    root_detection_enabled: true, developer_options_disabled: false,
+    vpn_required: false, mobile_data_restricted: false,
     kiosk_mode: false, kiosk_package: "", working_hours_start: "", working_hours_end: "",
   };
   // New policy: working-hours start is pre-filled with the current time (editable);
@@ -90,9 +92,9 @@ export function PolicyFormModal({ initial, token, organizationId, onClose, onSav
             {checkbox("password_required", "Password required")}
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <input type="number" placeholder="Min length" value={form.password_min_length} onChange={(e) => set("password_min_length", e.target.value)} />
-            <input type="number" placeholder="Max failed attempts" value={form.max_failed_attempts} onChange={(e) => set("max_failed_attempts", e.target.value)} />
-            <input type="number" placeholder="Auto-lock (minutes)" value={form.auto_lock_timeout_minutes} onChange={(e) => set("auto_lock_timeout_minutes", e.target.value)} />
+            <input type="number" min="4" max="16" step="1" placeholder="Min length (4-16)" value={form.password_min_length} onChange={(e) => set("password_min_length", e.target.value)} />
+            <input type="number" min="1" max="20" step="1" placeholder="Max failed attempts (1-20)" value={form.max_failed_attempts} onChange={(e) => set("max_failed_attempts", e.target.value)} />
+            <input type="number" min="1" max="1440" step="1" placeholder="Auto-lock (minutes)" value={form.auto_lock_timeout_minutes} onChange={(e) => set("auto_lock_timeout_minutes", e.target.value)} />
           </div>
 
           <p style={{ fontSize: "0.78rem", color: "var(--teal)", margin: "0.9rem 0 0.3rem", fontWeight: 600 }}>Application Policy</p>
