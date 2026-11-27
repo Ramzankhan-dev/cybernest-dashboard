@@ -10,11 +10,12 @@ export function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, 
   const [acting, setActing] = useState(null);
   const [requesting, setRequesting] = useState(false);
 
-  function loadApps() {
-    setLoading(true);
+  function loadApps(silent = false) {
+    if (!silent) setLoading(true);
     getInstalledApps(token, deviceUid)
       .then(setApps)
-      .finally(() => setLoading(false));
+      .catch(() => {})
+      .finally(() => { if (!silent) setLoading(false); });
   }
 
   useEffect(() => {
@@ -38,6 +39,15 @@ export function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, 
     try {
       await sendCommand(token, deviceUid, commandType, packageName);
       onCommandSent(`${commandType} sent for ${packageName}`);
+      // Update the row right away so the status and button flip immediately...
+      if (commandType === "block_app" || commandType === "unblock_app") {
+        const newStatus = commandType === "block_app" ? "blocked" : "allowed";
+        setApps((prev) => prev.map((a) => (a.package_name === packageName ? { ...a, status: newStatus } : a)));
+      } else if (commandType === "uninstall_app") {
+        setApps((prev) => prev.filter((a) => a.package_name !== packageName));
+      }
+      // ...then re-sync with what the device actually reported.
+      setTimeout(() => loadApps(true), 5000);
     } catch (err) {
       onCommandSent(`Failed: ${err.message}`, true);
     } finally {
@@ -53,7 +63,7 @@ export function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, 
             {requesting ? "Requesting..." : "Request update from device"}
           </button>
         )}
-        <button className="ghost-dark" onClick={loadApps}>Refresh list</button>
+        <button className="ghost-dark" onClick={() => loadApps()}>Refresh list</button>
         {!loading && (
           <span
             title={`${apps.length} app(s) on this device`}
@@ -92,7 +102,7 @@ export function AppsPanel({ deviceUid, token, onClose, onCommandSent, embedded, 
                         disabled={acting !== null}
                         onClick={() => handleAppAction("unblock_app", app.package_name)}
                       >
-                        {acting === app.package_name + "unblock_app" ? "..." : "Allow"}
+                        {acting === app.package_name + "unblock_app" ? "..." : "Unblock"}
                       </button>
                     ) : (
                       <button
